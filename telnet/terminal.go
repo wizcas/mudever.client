@@ -87,7 +87,6 @@ func (t *Terminal) recv(r *reader, chErr chan error) {
 			}
 			if err != nil {
 				if err == ErrEOS {
-					log.Println("EOP!!!!!!")
 					break
 				} else {
 					chErr <- err
@@ -95,7 +94,7 @@ func (t *Terminal) recv(r *reader, chErr chan error) {
 			}
 		}
 		data := packet.Bytes()
-		log.Println(data)
+		// log.Println(data)
 		log.Printf("[PACKET READ] len: %d", len(data))
 		output, err := t.decode(data)
 		if err != nil {
