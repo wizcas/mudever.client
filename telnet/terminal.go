@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"io"
 	"log"
 	"os"
 )
@@ -77,26 +76,27 @@ func (t *Terminal) encode(b []byte) ([]byte, error) {
 }
 
 func (t *Terminal) recv(r *reader, chErr chan error) {
-	buf := make([]byte, 1)
+	buf := make([]byte, 128)
 	packet := bytes.NewBuffer(nil)
 	for {
 		packet.Reset()
 		for {
 			n, err := r.read(buf)
+			if n > 0 {
+				packet.Write(buf[:n])
+			}
 			if err != nil {
-				if err == io.EOF {
-					// chErr <- errors.New("hiohoho")
+				if err == ErrEOS {
+					log.Println("EOP!!!!!!")
 					break
 				} else {
 					chErr <- err
 				}
 			}
-			if n > 0 {
-				packet.Write(buf[:n])
-			}
 		}
 		data := packet.Bytes()
 		log.Println(data)
+		log.Printf("[PACKET READ] len: %d", len(data))
 		output, err := t.decode(data)
 		if err != nil {
 			chErr <- err
