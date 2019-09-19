@@ -38,7 +38,7 @@ type reader struct {
 // It means that currently the stream transmission is done,
 // but connection is still alive for more incoming stream.
 // The buffered data is considered complete when streaming stops, and
-// The terminal should decode & output the buffered data on EOS signal.
+// The terminal should proceed the buffered data on EOS signal.
 var ErrEOS = errors.New("END OF STREAM")
 
 func newReader(r io.Reader) *reader {
@@ -50,14 +50,14 @@ func newReader(r io.Reader) *reader {
 	}
 }
 
-func (r *reader) packetEnds() bool {
+func (r *reader) streamEnds() bool {
 	return r.buffered.Buffered() <= 0 && r.inPacket
 }
 
 func (r *reader) read(data []byte) (int, error) {
 	block := newReadBlock(data)
 	for !block.exhausted() {
-		if r.packetEnds() {
+		if r.streamEnds() {
 			r.inPacket = false
 			log.Printf("[BLOCK READ] (EOS) len: %d", block.size)
 			return block.size, ErrEOS

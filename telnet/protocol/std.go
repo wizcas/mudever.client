@@ -1,4 +1,4 @@
-package cmds
+package protocol
 
 // Standard Commands
 const (
@@ -38,14 +38,14 @@ const (
 
 // Standard Options
 const (
-	Echo = byte(1)
-	SuppressGoAhead = byte(3)
-	Status = byte(5)
-	TimingMark = byte(6)
-	TerminalType = byte(24)
-	WindowSize = byte(31)
-	TerminalSpeed = byte(32)
-	RemoteFlowControl = byte(33)
-	LineMode = byte(34)
+	Echo                 = byte(1)
+	SuppressGoAhead      = byte(3)
+	Status               = byte(5)
+	TimingMark           = byte(6)
+	TerminalType         = byte(24)
+	WindowSize           = byte(31)
+	TerminalSpeed        = byte(32)
+	RemoteFlowControl    = byte(33)
+	LineMode             = byte(34)
 	EnvironmentVariables = byte(36)
 )

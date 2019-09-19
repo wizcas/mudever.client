@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"log"
 	"os"
 )
 
@@ -47,13 +46,19 @@ func NewTerminal(encoding TermEncoding) *Terminal {
 }
 
 func (t *Terminal) proc(r *reader, w *writer) error {
-	chRecvErr := make(chan error)
 	chSendErr := make(chan error)
-	go t.recv(r, chRecvErr)
+	recv := newReceiver(r)
+	go recv.run()
 	go t.send(w, chSendErr)
 	for {
 		select {
-		case err := <-chRecvErr:
+		case packet := <-recv.chPacket:
+			output, err := t.decode(packet)
+			if err != nil {
+				return terminalError{termErrorSys, err}
+			}
+			os.Stdout.Write(output)
+		case err := <-recv.chErr:
 			return terminalError{termErrorRecv, err}
 		case err := <-chSendErr:
 			return terminalError{termErrorSend, err}
@@ -73,35 +78,6 @@ func (t *Terminal) encode(b []byte) ([]byte, error) {
 		return b, nil
 	}
 	return t.Encoding.NewEncoder().Bytes(b)
-}
-
-func (t *Terminal) recv(r *reader, chErr chan error) {
-	buf := make([]byte, 128)
-	packet := bytes.NewBuffer(nil)
-	for {
-		packet.Reset()
-		for {
-			n, err := r.read(buf)
-			if n > 0 {
-				packet.Write(buf[:n])
-			}
-			if err != nil {
-				if err == ErrEOS {
-					break
-				} else {
-					chErr <- err
-				}
-			}
-		}
-		data := packet.Bytes()
-		// log.Println(data)
-		log.Printf("[PACKET READ] len: %d", len(data))
-		output, err := t.decode(data)
-		if err != nil {
-			chErr <- err
-		}
-		os.Stdout.Write(output)
-	}
 }
 
 func (t *Terminal) send(w *writer, chErr chan error) {
