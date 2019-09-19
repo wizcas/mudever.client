@@ -32,9 +32,6 @@ func TestProcPlainData(t *testing.T) {
 			So(p.(*packet.DataPacket).Data, ShouldResemble, data)
 		})
 	})
-}
-
-func TestProcPlainDataWithEscaped0xFF(t *testing.T) {
 	Convey("Given plain data with 0xFF", t, func() {
 		data := append(append([]byte("I'm plain"), []byte{255, 255}...), []byte("data")...)
 		expect := append(append([]byte("I'm plain"), []byte{255}...), []byte("data")...)
