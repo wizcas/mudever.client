@@ -1,4 +1,4 @@
-package telnet
+package stream
 
 import (
 	"bufio"
@@ -27,7 +27,12 @@ func (block *readBlock) writeByte(b byte) {
 	block.size++
 }
 
-type reader struct {
+// Reader reads bytes from a reader that keep alive
+// (i.e. not necessarily throws EOF when there's no more data),
+// but may stop feeding data from time to time. The reader
+// detects pause in data transimission, and indicates the
+// end of a stream pulse by ErrEOS
+type Reader struct {
 	source   io.Reader
 	buffered *bufio.Reader
 	inPacket bool
@@ -41,8 +46,8 @@ type reader struct {
 // The terminal should proceed the buffered data on EOS signal.
 var ErrEOS = errors.New("END OF STREAM")
 
-func newReader(r io.Reader) *reader {
-	return &reader{
+func NewReader(r io.Reader) *Reader {
+	return &Reader{
 		source:   r,
 		buffered: bufio.NewReader(r),
 		inPacket: false,
@@ -50,11 +55,11 @@ func newReader(r io.Reader) *reader {
 	}
 }
 
-func (r *reader) streamEnds() bool {
+func (r *Reader) streamEnds() bool {
 	return r.buffered.Buffered() <= 0 && r.inPacket
 }
 
-func (r *reader) read(data []byte) (int, error) {
+func (r *Reader) Read(data []byte) (int, error) {
 	block := newReadBlock(data)
 	for !block.exhausted() {
 		if r.streamEnds() {

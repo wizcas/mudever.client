@@ -49,7 +49,7 @@ MUD Protocol
 | **WONT**                 | 252            |                                                      |
 | **DO**                   | 253            |                                                      |
 | **DONT**                 | 254            |                                                      |
-| **IAC**                  | 25             |                                                      |
+| **IAC**                  | 255             |                                                      |
 
 ## Examples
 

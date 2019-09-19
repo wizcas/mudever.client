@@ -27,11 +27,6 @@ func TestSubStringify(t *testing.T) {
 	})
 }
 
-func TestSubKind(t *testing.T) {
-	Convey("Subnegotiation packet is of KindSubnegotiation", t, func() {
-		So(NewSubPacket(protocol.GA).GetKind(), ShouldEqual, KindSubnegotiation)
-	})
-}
 func TestSimpleSub(t *testing.T) {
 	Convey("Given a simple subnegotiation (1 parameter)", t, func() {
 		p := NewSubPacket(protocol.TerminalType, []byte{1})

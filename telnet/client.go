@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+
+	"github.com/wizcas/mudever.svc/telnet/stream"
 )
 
 type Server struct {
@@ -13,8 +15,8 @@ type Server struct {
 
 type Client struct {
 	conn     net.Conn
-	reader   *reader
-	writer   *writer
+	reader   *stream.Reader
+	writer   *stream.Writer
 	terminal *Terminal
 }
 
@@ -50,8 +52,8 @@ func (c *Client) Connect(server Server) error {
 		panic("empty connection")
 	}
 	c.conn = conn
-	c.reader = newReader(conn)
-	c.writer = newWriter(conn)
+	c.reader = stream.NewReader(conn)
+	c.writer = stream.NewWriter(conn)
 	return c.run()
 }
 

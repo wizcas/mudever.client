@@ -8,7 +8,8 @@ import (
 
 // DataPacket represents a bunch of telnet plain data
 type DataPacket struct {
-	data []byte
+	// Data to be output
+	Data []byte
 }
 
 // NewDataPacket creates a data packet with given data
@@ -16,14 +17,9 @@ func NewDataPacket(data []byte) *DataPacket {
 	return &DataPacket{data}
 }
 
-// GetKind returns KindData
-func (p *DataPacket) GetKind() Kind {
-	return KindData
-}
-
 // Serialize the packet with all 0xFF character escaped by IAC
 func (p *DataPacket) Serialize() ([]byte, error) {
-	result := p.data[:]
+	result := p.Data[:]
 	for i := 0; i < len(result); i++ {
 		b := result[i]
 		if b == protocol.IAC {
@@ -35,7 +31,7 @@ func (p *DataPacket) Serialize() ([]byte, error) {
 }
 
 func (p *DataPacket) String() string {
-	return fmt.Sprintf("[TXT] (%d bytes)", len(p.data))
+	return fmt.Sprintf("[TXT] (%d bytes)", len(p.Data))
 }
 
 func insert(dst []byte, b byte, pos int) []byte {

@@ -1,4 +1,4 @@
-package telnet
+package stream
 
 import (
 	"io"
@@ -12,12 +12,12 @@ func TestRead(t *testing.T) {
 	Convey("Given a string reader of a 15-character-string", t, func() {
 		rawdata := "Heeeelllllooooo"
 		sr := strings.NewReader(rawdata)
-		r := newReader(sr)
+		r := NewReader(sr)
 		Convey("With a small buffer of size 5", func() {
 			l := 5
 			buf := make([]byte, l)
 			Convey("only 5 characters can be read for once", func() {
-				n, err := r.read(buf)
+				n, err := r.Read(buf)
 				So(n, ShouldEqual, l)
 				So(err, ShouldBeNil)
 				So(string(buf[:n]), ShouldEqual, "Heeee")
@@ -31,7 +31,7 @@ func TestRead(t *testing.T) {
 				}
 				for {
 					count++
-					n, err := r.read(buf)
+					n, err := r.Read(buf)
 					if err == io.EOF {
 						So(count, ShouldEqual, 5)
 						So(n, ShouldEqual, 0)
@@ -52,14 +52,14 @@ func TestRead(t *testing.T) {
 			l := 15
 			buf := make([]byte, l)
 			Convey("Reads the entire string on 1st read, EOP on 2nd read, and EOF on 3rd read", func() {
-				n, err := r.read(buf)
+				n, err := r.Read(buf)
 				So(n, ShouldEqual, l)
 				So(err, ShouldBeNil)
 				So(string(buf), ShouldEqual, rawdata)
-				n, err = r.read(buf)
+				n, err = r.Read(buf)
 				So(n, ShouldEqual, 0)
 				So(err, ShouldEqual, ErrEOS)
-				n, err = r.read(buf)
+				n, err = r.Read(buf)
 				So(n, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})
@@ -68,11 +68,11 @@ func TestRead(t *testing.T) {
 			l := 20
 			buf := make([]byte, l)
 			Convey("Reads the entire string with ErrEOP, then returns empty buffer with EOF on next read", func() {
-				n, err := r.read(buf)
+				n, err := r.Read(buf)
 				So(n, ShouldEqual, 15)
 				So(err, ShouldEqual, ErrEOS)
 				So(string(buf[:n]), ShouldEqual, rawdata)
-				n, err = r.read(buf)
+				n, err = r.Read(buf)
 				So(n, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
 			})

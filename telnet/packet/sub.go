@@ -23,11 +23,6 @@ func NewSubPacket(option byte, args ...[]byte) *SubPacket {
 	return &SubPacket{option, parameter}
 }
 
-// GetKind returns KindSubnegotiation
-func (p *SubPacket) GetKind() Kind {
-	return KindSubnegotiation
-}
-
 // Serialize the packet with telnet protocol, i.e.:
 // IAC SB <OPTION> <PARAMETER> IAC SE
 func (p *SubPacket) Serialize() ([]byte, error) {

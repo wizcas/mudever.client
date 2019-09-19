@@ -22,11 +22,6 @@ func NewOptCommandPacket(command byte, option byte) *CommandPacket {
 	return &CommandPacket{command, option}
 }
 
-// GetKind returns KindCommand
-func (p *CommandPacket) GetKind() Kind {
-	return KindCommand
-}
-
 // Serialize the packet with IAC-escape,
 // which makes it contain 2 bytes for mono command and 3 for option command.
 func (p *CommandPacket) Serialize() ([]byte, error) {

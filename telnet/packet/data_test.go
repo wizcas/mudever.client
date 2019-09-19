@@ -21,12 +21,6 @@ func TestDataStringify(t *testing.T) {
 	})
 }
 
-func TestDataKind(t *testing.T) {
-	Convey("Data packet is of KindData", t, func() {
-		So(NewDataPacket([]byte{}).GetKind(), ShouldEqual, KindData)
-	})
-}
-
 func TestNoEscapeSerialize(t *testing.T) {
 	Convey("Given bytes without 0xFF", t, func() {
 		data := []byte{1, 2, 3, 4, 5}

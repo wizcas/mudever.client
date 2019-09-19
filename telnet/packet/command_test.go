@@ -28,12 +28,6 @@ func TestCmdStringify(t *testing.T) {
 	})
 }
 
-func TestCmdKind(t *testing.T) {
-	Convey("Command packet is of KindCommand", t, func() {
-		So(NewMonoCommandPacket(protocol.GA).GetKind(), ShouldEqual, KindCommand)
-	})
-}
-
 func TestMonoCommandSerialize(t *testing.T) {
 	Convey("Given a mono command packet", t, func() {
 		p := NewMonoCommandPacket(protocol.GA)

@@ -4,7 +4,12 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"os"
+
+	"github.com/wizcas/mudever.svc/telnet/packet"
+	"github.com/wizcas/mudever.svc/telnet/receiver"
+	"github.com/wizcas/mudever.svc/telnet/stream"
 )
 
 type termErrorKind byte
@@ -26,18 +31,18 @@ type terminalError struct {
 }
 
 func (te terminalError) Error() string {
-	var errorKindName string
+	var errName string
 	switch te.kind {
 	case termErrorSys:
-		errorKindName = "SYS"
+		errName = "SYS"
 	case termErrorRecv:
-		errorKindName = "RECV"
+		errName = "RECV"
 	case termErrorSend:
-		errorKindName = "SEND"
+		errName = "SEND"
 	default:
-		errorKindName = "UNKNOWN"
+		errName = "UNKNOWN"
 	}
-	return fmt.Sprintf("[%s ERR] %s", errorKindName, te.err.Error())
+	return fmt.Sprintf("[%s ERR] %s", errName, te.err.Error())
 }
 
 // NewTerminal creates a telnet terminal with specified encoding charset
@@ -45,20 +50,27 @@ func NewTerminal(encoding TermEncoding) *Terminal {
 	return &Terminal{encoding}
 }
 
-func (t *Terminal) proc(r *reader, w *writer) error {
+func (t *Terminal) proc(r *stream.Reader, w *stream.Writer) error {
 	chSendErr := make(chan error)
-	recv := newReceiver(r)
-	go recv.run()
+	recv := receiver.New(r)
+	go recv.Run()
 	go t.send(w, chSendErr)
 	for {
 		select {
-		case packet := <-recv.chPacket:
-			output, err := t.decode(packet)
-			if err != nil {
-				return terminalError{termErrorSys, err}
+		case pkt := <-recv.ChPacket:
+			switch p := pkt.(type) {
+			case *packet.DataPacket:
+				output, err := t.decode(p.Data)
+				if err != nil {
+					return terminalError{termErrorSys, err}
+				}
+				os.Stdout.Write(output)
+			case *packet.CommandPacket:
+			case *packet.SubPacket:
+				log.Println(p)
 			}
-			os.Stdout.Write(output)
-		case err := <-recv.chErr:
+
+		case err := <-recv.ChErr:
 			return terminalError{termErrorRecv, err}
 		case err := <-chSendErr:
 			return terminalError{termErrorSend, err}
@@ -80,7 +92,7 @@ func (t *Terminal) encode(b []byte) ([]byte, error) {
 	return t.Encoding.NewEncoder().Bytes(b)
 }
 
-func (t *Terminal) send(w *writer, chErr chan error) {
+func (t *Terminal) send(w *stream.Writer, chErr chan error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	buf := bytes.NewBuffer(nil)
 	scanner.Split(splitLines)
@@ -92,7 +104,7 @@ func (t *Terminal) send(w *writer, chErr chan error) {
 		if err != nil {
 			chErr <- err
 		}
-		n, err := w.write(line)
+		n, err := w.Write(line)
 		if expect := len(line); n != expect {
 			chErr <- fmt.Errorf("outgoing data loss: %d of %d bytes ar sent", n, expect)
 		}
