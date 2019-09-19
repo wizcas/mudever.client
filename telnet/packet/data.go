@@ -1,6 +1,8 @@
 package packet
 
 import (
+	"fmt"
+
 	"github.com/wizcas/mudever.svc/telnet/protocol"
 )
 
@@ -20,7 +22,7 @@ func (p *DataPacket) GetKind() Kind {
 }
 
 // Serialize the packet with all 0xFF character escaped by IAC
-func (p *DataPacket) Serialize() []byte {
+func (p *DataPacket) Serialize() ([]byte, error) {
 	result := p.data[:]
 	for i := 0; i < len(result); i++ {
 		b := result[i]
@@ -29,7 +31,11 @@ func (p *DataPacket) Serialize() []byte {
 			i++
 		}
 	}
-	return result
+	return result, nil
+}
+
+func (p *DataPacket) String() string {
+	return fmt.Sprintf("[TXT] (%d bytes)", len(p.data))
 }
 
 func insert(dst []byte, b byte, pos int) []byte {
@@ -37,12 +43,4 @@ func insert(dst []byte, b byte, pos int) []byte {
 	copy(dst[pos+1:], dst[pos:])
 	dst[pos] = b
 	return dst
-}
-
-func insertRef(dst *[]byte, b byte, pos int) {
-	slice := *dst
-	slice = append(slice, 0)
-	copy(slice[pos+1:], slice[pos:])
-	slice[pos] = b
-	*dst = slice
 }

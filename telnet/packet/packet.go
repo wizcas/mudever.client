@@ -18,5 +18,5 @@ type Packet interface {
 	GetKind() Kind
 	// Serialize the packet into the form ready for transimission.
 	// E.g., it escape the command byte with IAC
-	Serialize() []byte
+	Serialize() ([]byte, error)
 }

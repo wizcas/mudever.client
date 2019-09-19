@@ -29,12 +29,12 @@ func (p *CommandPacket) GetKind() Kind {
 
 // Serialize the packet with IAC-escape,
 // which makes it contain 2 bytes for mono command and 3 for option command.
-func (p *CommandPacket) Serialize() []byte {
+func (p *CommandPacket) Serialize() ([]byte, error) {
 	bytes := [3]byte{protocol.IAC, p.Command, p.Option}
 	if p.isMono() {
-		return bytes[:2]
+		return bytes[:2], nil
 	}
-	return bytes[:]
+	return bytes[:], nil
 }
 
 func (p *CommandPacket) isMono() bool {
@@ -46,7 +46,7 @@ func (p *CommandPacket) String() string {
 	if p.isMono() {
 		str = fmt.Sprintf("%v", p.Command)
 	} else {
-		str = fmt.Sprintf("%v %v", p.Command, p.Option)
+		str = fmt.Sprintf("%v | %v", p.Command, p.Option)
 	}
 	return fmt.Sprintf("[CMD] %s", str)
 }
