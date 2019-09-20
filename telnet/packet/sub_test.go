@@ -60,4 +60,15 @@ func TestComplexSub(t *testing.T) {
 			_assertSub(result, expect, err)
 		})
 	})
+	Convey("Given a subnegotiation with 0xFF in parameter", t, func() {
+		p := NewSubPacket(protocol.TerminalType, []byte{0, 255}, []byte("MUDEVER"))
+		Convey("Serialize correctly with 0xFF escaped", func() {
+			expect := []byte{byte(protocol.IAC), byte(protocol.SB), byte(protocol.TerminalType), 0,
+				255, 255,
+				'M', 'U', 'D', 'E', 'V', 'E', 'R',
+				byte(protocol.IAC), byte(protocol.SE)}
+			result, err := p.Serialize()
+			_assertSub(result, expect, err)
+		})
+	})
 }

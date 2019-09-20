@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"errors"
 	"io"
-	"log"
 )
 
 type readBlock struct {
@@ -65,12 +64,12 @@ func (r *Reader) Read(data []byte) (int, error) {
 	for !block.exhausted() {
 		if r.streamEnds() {
 			r.inPacket = false
-			log.Printf("[BLOCK READ] (EOS) len: %d", block.size)
+			// log.Printf("[BLOCK READ] (EOS) len: %d", block.size)
 			return block.size, ErrEOS
 		}
 		// Check for EOF in case the reader is closed
 		if _, err := r.buffered.Peek(1); err != nil {
-			log.Printf("[BLOCK READ] (EOF) len: %d", block.size)
+			// log.Printf("[BLOCK READ] (EOF) len: %d", block.size)
 			return block.size, err
 		}
 
@@ -82,6 +81,6 @@ func (r *Reader) Read(data []byte) (int, error) {
 		block.writeByte(b)
 		r.traffic++
 	}
-	log.Printf("[BLOCK READ] (BUF END) len: %d", block.size)
+	// log.Printf("[BLOCK READ] (BUF END) len: %d", block.size)
 	return block.size, nil
 }

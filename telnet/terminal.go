@@ -9,6 +9,7 @@ import (
 
 	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/receiver"
+	"github.com/wizcas/mudever.svc/telnet/sender"
 	"github.com/wizcas/mudever.svc/telnet/stream"
 )
 
@@ -23,6 +24,8 @@ const (
 // Terminal is where the telnet process runs
 type Terminal struct {
 	Encoding TermEncoding
+	receiver *receiver.Receiver
+	sender   *sender.Sender
 }
 
 type terminalError struct {
@@ -47,17 +50,23 @@ func (te terminalError) Error() string {
 
 // NewTerminal creates a telnet terminal with specified encoding charset
 func NewTerminal(encoding TermEncoding) *Terminal {
-	return &Terminal{encoding}
+	return &Terminal{
+		Encoding: encoding,
+	}
 }
 
-func (t *Terminal) proc(r *stream.Reader, w *stream.Writer) error {
+// Start the terminal session
+func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 	chSendErr := make(chan error)
-	recv := receiver.New(r)
-	go recv.Run()
-	go t.send(w, chSendErr)
+	t.receiver = receiver.New(r)
+	t.sender = sender.New(w)
+	go t.receiver.Run()
+	go t.sender.Run()
+	go t.input(chSendErr)
+
 	for {
 		select {
-		case pkt := <-recv.ChPacket:
+		case pkt := <-t.receiver.ChPacket:
 			switch p := pkt.(type) {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)
@@ -68,8 +77,7 @@ func (t *Terminal) proc(r *stream.Reader, w *stream.Writer) error {
 			case *packet.CommandPacket, *packet.SubPacket:
 				log.Println(p)
 			}
-
-		case err := <-recv.ChErr:
+		case err := <-t.receiver.ChErr:
 			return terminalError{termErrorRecv, err}
 		case err := <-chSendErr:
 			return terminalError{termErrorSend, err}
@@ -91,7 +99,7 @@ func (t *Terminal) encode(b []byte) ([]byte, error) {
 	return t.Encoding.NewEncoder().Bytes(b)
 }
 
-func (t *Terminal) send(w *stream.Writer, chErr chan error) {
+func (t *Terminal) input(chErr chan error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	buf := bytes.NewBuffer(nil)
 	scanner.Split(splitLines)
@@ -103,10 +111,8 @@ func (t *Terminal) send(w *stream.Writer, chErr chan error) {
 		if err != nil {
 			chErr <- err
 		}
-		n, err := w.Write(line)
-		if expect := len(line); n != expect {
-			chErr <- fmt.Errorf("outgoing data loss: %d of %d bytes ar sent", n, expect)
-		}
+		linePacket := packet.NewDataPacket(line)
+		t.sender.ChInput <- linePacket
 	}
 }
 

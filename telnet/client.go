@@ -66,5 +66,5 @@ func (c *Client) Close() {
 
 func (c *Client) run() error {
 	defer c.Close()
-	return c.terminal.proc(c.reader, c.writer)
+	return c.terminal.Start(c.reader, c.writer)
 }

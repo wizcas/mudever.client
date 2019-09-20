@@ -20,7 +20,7 @@ func NewSubPacket(option protocol.OptByte, args ...[]byte) *SubPacket {
 	for _, arg := range args {
 		parameter = append(parameter, arg...)
 	}
-	return &SubPacket{option, parameter}
+	return &SubPacket{option, escapeData(parameter)}
 }
 
 // Serialize the packet with telnet protocol, i.e.:

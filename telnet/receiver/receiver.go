@@ -2,6 +2,7 @@ package receiver
 
 import (
 	"bytes"
+	"io"
 	"log"
 
 	"github.com/wizcas/mudever.svc/telnet/packet"
@@ -11,7 +12,7 @@ import (
 // Receiver reads data from network stream and parses it into Packets,
 // which is comprehensible to Terminal
 type Receiver struct {
-	src      *stream.Reader
+	src      io.Reader
 	alloc    []byte
 	ChErr    chan error
 	ChPacket chan packet.Packet
@@ -20,7 +21,7 @@ type Receiver struct {
 }
 
 // New telnet data receiver
-func New(src *stream.Reader) *Receiver {
+func New(src io.Reader) *Receiver {
 	return &Receiver{
 		src:      src,
 		alloc:    make([]byte, 128),
@@ -39,7 +40,7 @@ func (r *Receiver) Run() {
 		if err != nil {
 			r.ChErr <- err
 		}
-		log.Printf("[PACKET READ] len: %d", len(data))
+		log.Printf("[PACKET RECV] len: %d", len(data))
 		r.state.proc(data, r.ChPacket, r.ChErr)
 	}
 }
