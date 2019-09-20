@@ -67,20 +67,20 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 		if pc.inState(stateIAC) {
 			pc.delState(stateIAC)
 			switch {
-			case b == protocol.IAC: // IAC IAC (0xFF as plain data)
+			case protocol.IAC.Eq(b): // IAC IAC (0xFF as plain data)
 				pc.buffer.WriteByte(b)
-			case b == protocol.SB: // IAC SB
+			case protocol.SB.Eq(b): // IAC SB
 				pc.submitAsData(chOutput)
 				pc.addState(stateSub)
-			case b == protocol.SE: // IAC SE
+			case protocol.SE.Eq(b): // IAC SE
 				buffer := pc.flush()
-				chOutput <- packet.NewSubPacket(buffer[0], buffer[1:])
+				chOutput <- packet.NewSubPacket(protocol.OptByte(buffer[0]), buffer[1:])
 				pc.reset()
-			case b > protocol.SE && b < protocol.SB: // IAC CMD
+			case b > byte(protocol.SE) && b < byte(protocol.SB): // IAC CMD
 				pc.submitAsData(chOutput)
-				chOutput <- packet.NewControlCommandPacket(b)
+				chOutput <- packet.NewControlCommandPacket(protocol.CmdByte(b))
 				pc.reset()
-			case b >= protocol.WILL && b <= protocol.DONT: // IAC CMD OPTION
+			case b >= byte(protocol.WILL) && b <= byte(protocol.DONT): // IAC CMD OPTION
 				pc.submitAsData(chOutput)
 				pc.addState(stateCmd)
 				// Keep this byte as command
@@ -95,7 +95,7 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 		} else {
 			// Leading IAC is the escape signal, and we need to examine the next byte
 			// for further information
-			if b == protocol.IAC {
+			if protocol.IAC.Eq(b) {
 				// log.Println("iac")
 				pc.addState(stateIAC)
 				continue
@@ -105,7 +105,7 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 			if pc.inState(stateCmd) {
 				// log.Println("opt cmd ends")
 				buffer := pc.flush()
-				chOutput <- packet.NewOptionCommandPacket(buffer[0], b)
+				chOutput <- packet.NewOptionCommandPacket(protocol.CmdByte(buffer[0]), protocol.OptByte(b))
 				pc.reset()
 				continue
 			}

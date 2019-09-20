@@ -22,8 +22,8 @@ func (p *DataPacket) Serialize() ([]byte, error) {
 	result := p.Data[:]
 	for i := 0; i < len(result); i++ {
 		b := result[i]
-		if b == protocol.IAC {
-			result = insert(result, protocol.IAC, i)
+		if b == byte(protocol.IAC) {
+			result = insert(result, byte(protocol.IAC), i)
 			i++
 		}
 	}

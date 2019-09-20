@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/wizcas/mudever.svc/telnet/packet"
@@ -64,9 +65,8 @@ func (t *Terminal) proc(r *stream.Reader, w *stream.Writer) error {
 					return terminalError{termErrorSys, err}
 				}
 				os.Stdout.Write(output)
-			case *packet.CommandPacket:
-			case *packet.SubPacket:
-				os.Stdout.Write([]byte(p.String()))
+			case *packet.CommandPacket, *packet.SubPacket:
+				log.Println(p)
 			}
 
 		case err := <-recv.ChErr:

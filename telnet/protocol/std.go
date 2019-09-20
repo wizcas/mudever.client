@@ -3,49 +3,51 @@ package protocol
 // Standard Commands
 const (
 	// SE = Subnegotiation ends
-	SE = byte(240)
+	SE = CmdByte(240)
 	// NOP = No operation
-	NOP = byte(241)
+	NOP = CmdByte(241)
 	// DM = Data mark (pos of Synch event)
-	DM = byte(242)
+	DM = CmdByte(242)
 	// BRK = Break
-	BRK = byte(243)
+	BRK = CmdByte(243)
 	// IP = Interrupt the process to which the NVT is connected
-	IP = byte(244)
+	IP = CmdByte(244)
 	// AO = Abort output
-	AO = byte(245)
+	AO = CmdByte(245)
 	// AYT = Are you there
-	AYT = byte(246)
+	AYT = CmdByte(246)
 	// EC = Erase character
-	EC = byte(247)
+	EC = CmdByte(247)
 	// EL = Erase line excluding the previous CRLF
-	EL = byte(248)
+	EL = CmdByte(248)
 	// GA = Go ahead
-	GA = byte(249)
+	GA = CmdByte(249)
 	// SB = Subnegotiation begins
-	SB = byte(250)
+	SB = CmdByte(250)
 	// WILL = Sender wants to do something
-	WILL = byte(251)
+	WILL = CmdByte(251)
 	// WONT = Sender doesn't to do something
-	WONT = byte(252)
+	WONT = CmdByte(252)
 	// DO = Sender wants THE OTHER to do something
-	DO = byte(253)
+	DO = CmdByte(253)
 	// DONT = Sender doesn't THE OTHER to do something
-	DONT = byte(254)
+	DONT = CmdByte(254)
 	// IAC = Interpret as command. The escape character in telnet protocol.
-	IAC = byte(255)
+	IAC = CmdByte(255)
 )
 
 // Standard Options
 const (
-	Echo                 = byte(1)
-	SuppressGoAhead      = byte(3)
-	Status               = byte(5)
-	TimingMark           = byte(6)
-	TerminalType         = byte(24)
-	WindowSize           = byte(31)
-	TerminalSpeed        = byte(32)
-	RemoteFlowControl    = byte(33)
-	LineMode             = byte(34)
-	EnvironmentVariables = byte(36)
+	Echo                 = OptByte(1)
+	SuppressGoAhead      = OptByte(3)
+	Status               = OptByte(5)
+	TimingMark           = OptByte(6)
+	TerminalType         = OptByte(24)
+	WindowSize           = OptByte(31)
+	TerminalSpeed        = OptByte(32)
+	RemoteFlowControl    = OptByte(33)
+	LineMode             = OptByte(34)
+	EnvironmentVariables = OptByte(36)
+
+	NoOption = OptByte(255)
 )

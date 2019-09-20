@@ -31,13 +31,13 @@ func _assertData(p packet.Packet, expectData []byte) {
 	So(p.(*packet.DataPacket).Data, ShouldResemble, expectData)
 }
 
-func _assertCmd(p packet.Packet, expectCmd, expectOption byte) {
+func _assertCmd(p packet.Packet, expectCmd protocol.CmdByte, expectOption protocol.OptByte) {
 	So(p, ShouldHaveSameTypeAs, &packet.CommandPacket{})
 	cmdp := p.(*packet.CommandPacket)
 	So(cmdp.Command, ShouldEqual, expectCmd)
 	So(cmdp.Option, ShouldEqual, expectOption)
 }
-func _assertSub(p packet.Packet, expectOption byte, expectParameter []byte) {
+func _assertSub(p packet.Packet, expectOption protocol.OptByte, expectParameter []byte) {
 	So(p, ShouldHaveSameTypeAs, &packet.SubPacket{})
 	subp := p.(*packet.SubPacket)
 	So(subp.Option, ShouldEqual, expectOption)
@@ -68,16 +68,16 @@ func TestProcPlainData(t *testing.T) {
 
 func TestProcCommand(t *testing.T) {
 	Convey("Given a control command", t, func() {
-		data := []byte{protocol.IAC, protocol.GA}
+		data := []byte{byte(protocol.IAC), byte(protocol.GA)}
 		Convey("Get: CommandPacket whose Option = IAC", func() {
 			tester := _newProcTester()
 			tester.test(data)
 			p := <-tester.chOutput
-			_assertCmd(p, protocol.GA, protocol.IAC)
+			_assertCmd(p, protocol.GA, protocol.NoOption)
 		})
 	})
 	Convey("Given an option command", t, func() {
-		data := []byte{protocol.IAC, protocol.WILL, protocol.Echo}
+		data := []byte{byte(protocol.IAC), byte(protocol.WILL), byte(protocol.Echo)}
 		Convey("Get: CommandPacket whose Command & Option are both set", func() {
 			tester := _newProcTester()
 			tester.test(data)
@@ -89,10 +89,10 @@ func TestProcCommand(t *testing.T) {
 
 func TestProcSub(t *testing.T) {
 	Convey("Given a subnegotiation", t, func() {
-		data := []byte{protocol.IAC, protocol.SB, protocol.TerminalType,
+		data := []byte{byte(protocol.IAC), byte(protocol.SB), byte(protocol.TerminalType),
 			0,
 			'M', 'U', 'D', 'E', 'V', 'E', 'R',
-			protocol.IAC, protocol.SE,
+			byte(protocol.IAC), byte(protocol.SE),
 		}
 		expectOption := protocol.TerminalType
 		expectParameter := append([]byte{0}, []byte("MUDEVER")...)
@@ -109,7 +109,7 @@ func TestProcInvalidCommand(t *testing.T) {
 	Convey("Given data includes invalid telnet command", t, func() {
 		goodData1 := []byte{1, 2, 3, 4}
 		goodData2 := []byte{5, 6, 7, 8}
-		badCmd := []byte{protocol.IAC, 0}
+		badCmd := []byte{byte(protocol.IAC), 0}
 		data := append(goodData1, append(badCmd, goodData2...)...)
 		Convey("Get: error then rest of the data", func() {
 			tester := _newProcTester()
@@ -133,11 +133,11 @@ func TestProcFlow(t *testing.T) {
 	subopt := protocol.TerminalType
 	subparam := []byte{0, 'M', 'U', 'D', 'E', 'V', 'E', 'R'}
 
-	pieceCtrlCmd := []byte{protocol.IAC, ctrlcmd}
-	pieceOptCmd := []byte{protocol.IAC, optcmd, optval}
+	pieceCtrlCmd := []byte{byte(protocol.IAC), byte(ctrlcmd)}
+	pieceOptCmd := []byte{byte(protocol.IAC), byte(optcmd), byte(optval)}
 	pieceSub := append(
-		append([]byte{protocol.IAC, protocol.SB, subopt}, subparam...),
-		protocol.IAC, protocol.SE)
+		append([]byte{byte(protocol.IAC), byte(protocol.SB), byte(subopt)}, subparam...),
+		byte(protocol.IAC), byte(protocol.SE))
 
 	Convey("Given [CTRL CMD | DATA]", t, func() {
 		data := append(pieceCtrlCmd, plain...)
@@ -145,7 +145,7 @@ func TestProcFlow(t *testing.T) {
 			tester := _newProcTester()
 			tester.test(data)
 			p1 := <-tester.chOutput
-			_assertCmd(p1, ctrlcmd, protocol.IAC)
+			_assertCmd(p1, ctrlcmd, protocol.NoOption)
 			p2 := <-tester.chOutput
 			_assertData(p2, plain)
 		})
@@ -169,11 +169,11 @@ func TestProcFlow(t *testing.T) {
 			p1 := <-tester.chOutput
 			_assertData(p1, plain)
 			p2 := <-tester.chOutput
-			_assertCmd(p2, ctrlcmd, protocol.IAC)
+			_assertCmd(p2, ctrlcmd, protocol.NoOption)
 		})
 	})
 	Convey("Given [DATA | OPT CMD]", t, func() {
-		data := append(plain, []byte{protocol.IAC, optcmd, optval}...)
+		data := append(plain, pieceOptCmd...)
 		Convey("Get: DataPacket + CommandPacket", func() {
 			tester := _newProcTester()
 			tester.test(data)

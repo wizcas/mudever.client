@@ -15,7 +15,7 @@ MUD Protocol
 | **LINEMODE**             | 34             |                                                      |
 | **ENVIRONMENTVARIABLES** | 36             |                                                      |
 | AUTHENTICATION           | 37             |                                                      |
-| ENCRYPTIONOPTION         | 38             |                                                      |
+| ENCRYPTION               | 38             |                                                      |
 | NEWENVIRONMENT           | 39             |                                                      |
 | TN3270E                  | 40             |                                                      |
 | XAUTH                    | 41             |                                                      |
@@ -39,7 +39,7 @@ MUD Protocol
 | **DATAMARK**             | 242            |                                                      |
 | **BREAK**                | 243            |                                                      |
 | **INTERRUPT**            | 244            |                                                      |
-| **ABORT**                | 245            |                                                      |
+| **ABORTOUTPUT**                | 245            |                                                      |
 | **AREYOUTHERE**          | 246            |                                                      |
 | **ERASECHAR**            | 247            |                                                      |
 | **ERASELINE**            | 248            |                                                      |
@@ -49,7 +49,7 @@ MUD Protocol
 | **WONT**                 | 252            |                                                      |
 | **DO**                   | 253            |                                                      |
 | **DONT**                 | 254            |                                                      |
-| **IAC**                  | 255             |                                                      |
+| **IAC**                  | 255            |                                                      |
 
 ## Examples
 
