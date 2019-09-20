@@ -15,6 +15,7 @@ type Receiver struct {
 	alloc    []byte
 	ChErr    chan error
 	ChOutput chan packet.Packet
+	ChStop   chan struct{}
 
 	processor *processor
 }
@@ -26,6 +27,7 @@ func New(src io.Reader) *Receiver {
 		alloc:     make([]byte, 128),
 		ChErr:     make(chan error),
 		ChOutput:  make(chan packet.Packet),
+		ChStop:    make(chan struct{}),
 		processor: newProcessor(),
 	}
 }
@@ -34,14 +36,27 @@ func New(src io.Reader) *Receiver {
 // Any processed packets are input into Receiver.ChPacket, and errors
 // into Receiver.ChErr
 func (r *Receiver) Run() {
+LOOP:
 	for {
-		data, err := r.readStream()
-		log.Printf("[PACKET RECV] len: %d", len(data))
-		r.processor.proc(data, r.ChOutput, r.ChErr)
-		if err != nil {
-			r.ChErr <- err
+		select {
+		case <-r.ChStop:
+			break LOOP
+		default:
+			data, err := r.readStream()
+			log.Printf("[PACKET RECV] len: %d", len(data))
+			r.processor.proc(data, r.ChOutput, r.ChErr)
+			if err != nil {
+				r.ChErr <- err
+			}
 		}
 	}
+	r.dispose()
+	log.Println("receiver stopped.")
+}
+
+// Stop the receiver and release resources
+func (r *Receiver) Stop() {
+	r.ChStop <- struct{}{}
 }
 
 func (r *Receiver) readStream() ([]byte, error) {
@@ -59,4 +74,10 @@ func (r *Receiver) readStream() ([]byte, error) {
 		}
 	}
 	return buffer.Bytes(), nil
+}
+
+func (r *Receiver) dispose() {
+	close(r.ChOutput)
+	close(r.ChErr)
+	close(r.ChStop)
 }

@@ -3,6 +3,7 @@ package sender
 import (
 	"fmt"
 	"io"
+	"log"
 
 	"github.com/wizcas/mudever.svc/telnet/packet"
 )
@@ -12,6 +13,7 @@ type Sender struct {
 	dst     io.Writer
 	ChInput chan packet.Packet
 	ChErr   chan error
+	ChStop  chan struct{}
 }
 
 // New sender to write packets into dst writer.
@@ -20,11 +22,13 @@ func New(dst io.Writer) *Sender {
 		dst:     dst,
 		ChInput: make(chan packet.Packet),
 		ChErr:   make(chan error),
+		ChStop:  make(chan struct{}),
 	}
 }
 
 // Run the sender loop for sending packets
 func (s *Sender) Run() {
+LOOP:
 	for {
 		select {
 		case p := <-s.ChInput:
@@ -37,6 +41,21 @@ func (s *Sender) Run() {
 					s.ChErr <- fmt.Errorf("data inconsistency: %d written (%d intended)", n, len(data))
 				}
 			}
+		case <-s.ChStop:
+			break LOOP
 		}
 	}
+	s.dispose()
+	log.Println("sender stopped.")
+}
+
+// Stop the sender and release resources
+func (s *Sender) Stop() {
+	s.ChStop <- struct{}{}
+}
+
+func (r *Sender) dispose() {
+	close(r.ChInput)
+	close(r.ChErr)
+	close(r.ChStop)
 }
