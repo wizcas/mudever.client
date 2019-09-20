@@ -54,8 +54,8 @@ func (s *Sender) Stop() {
 	s.ChStop <- struct{}{}
 }
 
-func (r *Sender) dispose() {
-	close(r.ChInput)
-	close(r.ChErr)
-	close(r.ChStop)
+func (s *Sender) dispose() {
+	close(s.ChInput)
+	close(s.ChErr)
+	close(s.ChStop)
 }
