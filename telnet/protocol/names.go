@@ -25,13 +25,18 @@ var optionNames = map[OptByte]string{
 	47:  "KERMIT",
 	48:  "SEND-URL",
 	49:  "FORWARD-X",
-	69:  "MUD-SERVER-DATA-PROTOCOL",
-	70:  "MUD-SERVER-STATUS-PROTOCOL",
-	86:  "MUD-CLIENT-COMPRESSION-PROTOCOL",
+	69:  "MSDP",  // MUD Server Data Protocol
+	70:  "MSSP",  // MUD Server Status Protocol
+	85:  "MCCP1", // Mud Client Compression Protocol version 1
+	86:  "MCCP2", // Mud Client Compression Protocol version 2
+	90:  "MSP",   // MUD Sound Protocol
+	91:  "MXP",   // MUD eXtension Protocol
+	93:  "ZMP",   // Zenith MUD Protocol
 	138: "TEL-OPT-PRAGMA-LOGON",
 	139: "TEL-OPT-SSPI-LOGON",
 	140: "TEL-OPT-PRAGMA-HEARTBEAT",
-	201: "GENERIC-MUD-CLIENT-PROTOCOL",
+	200: "ATCP", // Achaea Telnet Client Protocol
+	201: "GMCP", // Generic MUD Communication Protocol
 }
 
 var cmdNames = map[CmdByte]string{
