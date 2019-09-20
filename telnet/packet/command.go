@@ -12,13 +12,13 @@ type CommandPacket struct {
 	Option  byte
 }
 
-// NewMonoCommandPacket creates a no-option command.
-func NewMonoCommandPacket(command byte) *CommandPacket {
+// NewControlCommandPacket creates a command of a telnet control function
+func NewControlCommandPacket(command byte) *CommandPacket {
 	return &CommandPacket{command, protocol.IAC}
 }
 
-// NewOptCommandPacket creates a command with an option.
-func NewOptCommandPacket(command byte, option byte) *CommandPacket {
+// NewOptionCommandPacket creates a command of a negotiable option
+func NewOptionCommandPacket(command byte, option byte) *CommandPacket {
 	return &CommandPacket{command, option}
 }
 

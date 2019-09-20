@@ -46,6 +46,7 @@ type Reader struct {
 // The terminal should proceed the buffered data on EOS signal.
 var ErrEOS = errors.New("END OF STREAM")
 
+// NewReader returns a new reader
 func NewReader(r io.Reader) *Reader {
 	return &Reader{
 		source:   r,
@@ -77,14 +78,6 @@ func (r *Reader) Read(data []byte) (int, error) {
 		r.inPacket = true
 		if err != nil {
 			return block.size, err
-		}
-		if b == 255 {
-			next, err := r.buffered.Peek(1)
-			if err != nil {
-				log.Printf("[BLOCK READ] (IAC ERR) len: %d", block.size)
-				return block.size, err
-			}
-			log.Printf("[IAC] %d\n", next[0])
 		}
 		block.writeByte(b)
 		r.traffic++
