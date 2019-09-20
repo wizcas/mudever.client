@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 
+	"github.com/wizcas/mudever.svc/telnet/nvt"
 	"github.com/wizcas/mudever.svc/telnet/stream"
 )
 
@@ -17,12 +18,12 @@ type Client struct {
 	conn     net.Conn
 	reader   *stream.Reader
 	writer   *stream.Writer
-	terminal *Terminal
+	terminal *nvt.Terminal
 }
 
-func NewClient(encoding TermEncoding) *Client {
+func NewClient(encoding nvt.Encoding) *Client {
 	return &Client{
-		terminal: NewTerminal(encoding),
+		terminal: nvt.NewTerminal(encoding),
 	}
 }
 

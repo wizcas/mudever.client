@@ -1,9 +1,8 @@
-package telnet
+package nvt
 
 import (
 	"bufio"
 	"bytes"
-	"fmt"
 	"log"
 	"os"
 
@@ -13,43 +12,15 @@ import (
 	"github.com/wizcas/mudever.svc/telnet/stream"
 )
 
-type termErrorKind byte
-
-const (
-	termErrorSys termErrorKind = iota
-	termErrorRecv
-	termErrorSend
-)
-
 // Terminal is where the telnet process runs
 type Terminal struct {
-	Encoding TermEncoding
+	Encoding Encoding
 	receiver *receiver.Receiver
 	sender   *sender.Sender
 }
 
-type terminalError struct {
-	kind termErrorKind
-	err  error
-}
-
-func (te terminalError) Error() string {
-	var errName string
-	switch te.kind {
-	case termErrorSys:
-		errName = "SYS"
-	case termErrorRecv:
-		errName = "RECV"
-	case termErrorSend:
-		errName = "SEND"
-	default:
-		errName = "UNKNOWN"
-	}
-	return fmt.Sprintf("[%s ERR] %s", errName, te.err.Error())
-}
-
 // NewTerminal creates a telnet terminal with specified encoding charset
-func NewTerminal(encoding TermEncoding) *Terminal {
+func NewTerminal(encoding Encoding) *Terminal {
 	return &Terminal{
 		Encoding: encoding,
 	}
@@ -57,12 +28,12 @@ func NewTerminal(encoding TermEncoding) *Terminal {
 
 // Start the terminal session
 func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
-	chSendErr := make(chan error)
+	chInputErr := make(chan error)
 	t.receiver = receiver.New(r)
 	t.sender = sender.New(w)
 	go t.receiver.Run()
 	go t.sender.Run()
-	go t.input(chSendErr)
+	go t.input(chInputErr)
 
 	for {
 		select {
@@ -71,16 +42,18 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)
 				if err != nil {
-					return terminalError{termErrorSys, err}
+					return terminalError{errorSys, err}
 				}
 				os.Stdout.Write(output)
 			case *packet.CommandPacket, *packet.SubPacket:
 				log.Println(p)
 			}
 		case err := <-t.receiver.ChErr:
-			return terminalError{termErrorRecv, err}
-		case err := <-chSendErr:
-			return terminalError{termErrorSend, err}
+			return terminalError{errorRecv, err}
+		case err := <-t.sender.ChErr:
+			return terminalError{errorSend, err}
+		case err := <-chInputErr:
+			return terminalError{errorInput, err}
 		}
 	}
 }
@@ -106,7 +79,7 @@ func (t *Terminal) input(chErr chan error) {
 	for scanner.Scan() {
 		buf.Reset()
 		buf.Write(scanner.Bytes())
-		buf.Write(crlf)
+		buf.Write(CRLF)
 		line, err := t.encode(buf.Bytes())
 		if err != nil {
 			chErr <- err
