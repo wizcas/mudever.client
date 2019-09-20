@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/wizcas/mudever.svc/telnet/packet"
-	"github.com/wizcas/mudever.svc/telnet/stream"
 )
 
 // Receiver reads data from network stream and parses it into Packets,
@@ -37,11 +36,11 @@ func New(src io.Reader) *Receiver {
 func (r *Receiver) Run() {
 	for {
 		data, err := r.readStream()
+		log.Printf("[PACKET RECV] len: %d", len(data))
+		r.processor.proc(data, r.ChOutput, r.ChErr)
 		if err != nil {
 			r.ChErr <- err
 		}
-		log.Printf("[PACKET RECV] len: %d", len(data))
-		r.processor.proc(data, r.ChOutput, r.ChErr)
 	}
 }
 
@@ -53,11 +52,10 @@ func (r *Receiver) readStream() ([]byte, error) {
 			buffer.Write(r.alloc[:n])
 		}
 		if err != nil {
-			if err == stream.ErrEOS {
-				break
-			} else {
-				return buffer.Bytes(), err
-			}
+			return buffer.Bytes(), err
+		}
+		if n == 0 { // (0, nil) indicates the end of stream
+			break
 		}
 	}
 	return buffer.Bytes(), nil

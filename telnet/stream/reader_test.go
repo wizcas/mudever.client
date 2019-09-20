@@ -2,6 +2,7 @@ package stream
 
 import (
 	"io"
+	"log"
 	"strings"
 	"testing"
 
@@ -24,25 +25,26 @@ func TestRead(t *testing.T) {
 			})
 			Convey("finish reading to eof with 5 read calls", func() {
 				count := 0
-				expects := [5]string{
+				expects := []string{
 					"Heeee",
 					"lllll",
 					"ooooo",
 				}
-				for {
+				for count < 5 {
 					count++
+					log.Printf("read %d", count)
 					n, err := r.Read(buf)
-					if err == io.EOF {
-						So(count, ShouldEqual, 5)
-						So(n, ShouldEqual, 0)
-						break
-					}
-					if err == ErrEOS {
-						So(n, ShouldEqual, 0)
-					} else {
+					if count < 4 {
 						So(n, ShouldEqual, 5)
 						s := string(buf[:n])
 						So(s, ShouldEqual, expects[count-1])
+					} else if count == 4 {
+						So(n, ShouldEqual, 0)
+						So(err, ShouldBeNil)
+					} else {
+						So(n, ShouldEqual, 0)
+						So(err, ShouldBeError, io.EOF)
+						break
 					}
 				}
 				So(count, ShouldEqual, 5)
@@ -58,7 +60,7 @@ func TestRead(t *testing.T) {
 				So(string(buf), ShouldEqual, rawdata)
 				n, err = r.Read(buf)
 				So(n, ShouldEqual, 0)
-				So(err, ShouldEqual, ErrEOS)
+				So(err, ShouldEqual, nil)
 				n, err = r.Read(buf)
 				So(n, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
@@ -70,8 +72,11 @@ func TestRead(t *testing.T) {
 			Convey("Reads the entire string with ErrEOP, then returns empty buffer with EOF on next read", func() {
 				n, err := r.Read(buf)
 				So(n, ShouldEqual, 15)
-				So(err, ShouldEqual, ErrEOS)
+				So(err, ShouldEqual, nil)
 				So(string(buf[:n]), ShouldEqual, rawdata)
+				n, err = r.Read(buf)
+				So(n, ShouldEqual, 0)
+				So(err, ShouldEqual, nil)
 				n, err = r.Read(buf)
 				So(n, ShouldEqual, 0)
 				So(err, ShouldEqual, io.EOF)
