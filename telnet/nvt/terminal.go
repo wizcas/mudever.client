@@ -6,9 +6,11 @@ import (
 	"log"
 	"os"
 
+	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
+	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator/mtts"
+	"github.com/wizcas/mudever.svc/telnet/nvt/receiver"
+	"github.com/wizcas/mudever.svc/telnet/nvt/sender"
 	"github.com/wizcas/mudever.svc/telnet/packet"
-	"github.com/wizcas/mudever.svc/telnet/receiver"
-	"github.com/wizcas/mudever.svc/telnet/sender"
 	"github.com/wizcas/mudever.svc/telnet/stream"
 )
 
@@ -28,6 +30,10 @@ func NewTerminal(encoding Encoding) *Terminal {
 
 // Start the terminal session
 func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
+
+	nego := negotiator.New()
+	nego.Know(mtts.New(false))
+
 	chInputErr := make(chan error)
 	t.receiver = receiver.New(r)
 	t.sender = sender.New(w)
@@ -37,7 +43,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 
 	for {
 		select {
-		case pkt := <-t.receiver.ChPacket:
+		case pkt := <-t.receiver.ChOutput:
 			switch p := pkt.(type) {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)
@@ -46,7 +52,15 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 				}
 				os.Stdout.Write(output)
 			case *packet.CommandPacket, *packet.SubPacket:
-				log.Println(p)
+				log.Printf("\x1b[32m<RECV>\x1b[0m %s\n", p)
+				res, err := nego.Handle(p)
+				if err != nil {
+					return err
+				}
+				if res != nil {
+					log.Printf("\x1b[36m<RPLY>\x1b[0m %s\n", res)
+					t.sender.ChInput <- res
+				}
 			}
 		case err := <-t.receiver.ChErr:
 			return terminalError{errorRecv, err}

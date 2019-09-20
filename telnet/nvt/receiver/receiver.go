@@ -15,19 +15,19 @@ type Receiver struct {
 	src      io.Reader
 	alloc    []byte
 	ChErr    chan error
-	ChPacket chan packet.Packet
+	ChOutput chan packet.Packet
 
-	state *processor
+	processor *processor
 }
 
 // New telnet data receiver
 func New(src io.Reader) *Receiver {
 	return &Receiver{
-		src:      src,
-		alloc:    make([]byte, 128),
-		ChErr:    make(chan error),
-		ChPacket: make(chan packet.Packet),
-		state:    newProcessor(),
+		src:       src,
+		alloc:     make([]byte, 128),
+		ChErr:     make(chan error),
+		ChOutput:  make(chan packet.Packet),
+		processor: newProcessor(),
 	}
 }
 
@@ -41,7 +41,7 @@ func (r *Receiver) Run() {
 			r.ChErr <- err
 		}
 		log.Printf("[PACKET RECV] len: %d", len(data))
-		r.state.proc(data, r.ChPacket, r.ChErr)
+		r.processor.proc(data, r.ChOutput, r.ChErr)
 	}
 }
 
