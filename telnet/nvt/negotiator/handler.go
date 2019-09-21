@@ -32,7 +32,7 @@ type OptionHandler interface {
 
 // Errors caused by handlers
 var (
-	ErrIgnore   = errors.New("IGNORE")
+	// ErrIgnore   = errors.New("IGNORE")
 	ErrLackData = errors.New("LACK OF DATA")
 )
 

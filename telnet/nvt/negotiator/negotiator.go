@@ -101,10 +101,3 @@ func (nego *Negotiator) handle(p packet.Packet) {
 		go handler.Subnegotiate(sub.Parameter)
 	}
 }
-
-func filterError(err error) error {
-	if err == ErrIgnore {
-		return nil
-	}
-	return err
-}

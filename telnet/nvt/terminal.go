@@ -8,6 +8,7 @@ import (
 
 	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
 	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator/mtts"
+	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator/naws"
 	"github.com/wizcas/mudever.svc/telnet/nvt/receiver"
 	"github.com/wizcas/mudever.svc/telnet/nvt/sender"
 	"github.com/wizcas/mudever.svc/telnet/packet"
@@ -33,6 +34,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 
 	ng := nego.New()
 	ng.Know(mtts.New(false))
+	ng.Know(naws.New())
 	go ng.Run()
 
 	chInputErr := make(chan error)
@@ -53,30 +55,21 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 				}
 				os.Stdout.Write(output)
 			case *packet.CommandPacket, *packet.SubPacket:
+				// Send commands and subnegotiations to Negotiator
 				log.Printf("\x1b[32m<RECV>\x1b[0m %s\n", p)
 				ng.ChInput <- p
-				// res, err := nego.Handle(p)
-				// if err != nil {
-				// 	return err
-				// }
-				// if res != nil {
-				// 	log.Printf("\x1b[36m<RPLY>\x1b[0m %s\n", res)
-				// 	t.sender.ChInput <- res
-				// }
 			}
+		case err := <-t.receiver.ChErr:
+			return terminalError{errorRecv, err}
 		case reply := <-ng.ChOutput:
 			log.Printf("\x1b[36m<RPLY>\x1b[0m %s\n", reply)
 			t.sender.ChInput <- reply
-		case err := <-t.receiver.ChErr:
-			return terminalError{errorRecv, err}
+		case err := <-ng.ChErr:
+			return terminalError{errorNegotiator, err}
 		case err := <-t.sender.ChErr:
 			return terminalError{errorSend, err}
 		case err := <-chInputErr:
 			return terminalError{errorInput, err}
-		case err := <-ng.ChErr:
-			if err != nil && err != nego.ErrIgnore {
-				return terminalError{errorNegotiator, err}
-			}
 		}
 	}
 }

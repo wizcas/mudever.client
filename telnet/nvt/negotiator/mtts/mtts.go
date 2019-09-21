@@ -79,7 +79,6 @@ func (h *MTTS) Handshake(inCmd telbyte.Command) {
 		res = telbyte.WONT
 		h.queryTimes = 0
 	default:
-		h.ChErr <- nego.ErrIgnore
 		return
 	}
 	h.ChOutCmd <- nego.NewHandledCmd(h, res)
@@ -95,7 +94,6 @@ func (h *MTTS) Subnegotiate(inParameter []byte) {
 	}
 	action := inParameter[0]
 	if action != SEND {
-		h.ChErr <- nego.ErrIgnore
 		return
 	}
 	var payload []byte

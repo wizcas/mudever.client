@@ -1,6 +1,8 @@
 package naws
 
 import (
+	"encoding/binary"
+
 	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
@@ -8,6 +10,7 @@ import (
 // NAWS stands for Negotiate About Window Size, which is used for
 // dealing with telnet option 31
 type NAWS struct {
+	*nego.OptionHandlerBase
 	// Width is defined as how many characters can be displayed horizontally.
 	// Value 0 means let server side decide the width.
 	Width uint16
@@ -20,7 +23,9 @@ type NAWS struct {
 
 // New an NAWS object
 func New() *NAWS {
-	return &NAWS{}
+	return &NAWS{
+		OptionHandlerBase: nego.NewOptionHandlerBase(),
+	}
 }
 
 // Option implements OptionHandler
@@ -29,20 +34,32 @@ func (h *NAWS) Option() telbyte.Option {
 }
 
 // Handshake implements OptionHandler
-func (h *NAWS) Handshake(inCmd telbyte.Command) (telbyte.Command, error) {
+func (h *NAWS) Handshake(inCmd telbyte.Command) {
+	var reply telbyte.Command
 	switch inCmd {
 	case telbyte.DO:
 		h.submitting = true
-		return telbyte.WILL, nil
+		reply = telbyte.WILL
 	case telbyte.DONT:
 		h.submitting = false
-		return telbyte.WONT, nil
+		reply = telbyte.WONT
 	default:
-		return 0, nego.ErrIgnore
+		return
+	}
+	h.ChOutCmd <- nego.NewHandledCmd(h, reply)
+	if h.submitting {
+		h.ChOutSub <- nego.NewHandledSub(h, h.encodeParameter())
 	}
 }
 
 // Subnegotiate implements OptionHandler
-func (h *NAWS) Subnegotiate(inParameter []byte) ([]byte, error) {
-	return nil, nego.ErrIgnore
+func (h *NAWS) Subnegotiate(inParameter []byte) {
+}
+
+func (h *NAWS) encodeParameter() []byte {
+	bw := make([]byte, 2, 2)
+	bh := make([]byte, 2, 2)
+	binary.BigEndian.PutUint16(bw, h.Width)
+	binary.BigEndian.PutUint16(bh, h.Height)
+	return append(bw, bh...)
 }
