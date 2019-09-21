@@ -1,29 +1,41 @@
 package negotiator
 
 import (
+	"log"
+
 	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/protocol"
 )
 
 // Negotiator takes care of telnet negotiations
 type Negotiator struct {
-	OptionMap map[protocol.OptByte]OptionHandler
+	controlHandlers map[protocol.CmdByte]ControlHandler
+	optionHandlers  map[protocol.OptByte]OptionHandler
 }
 
 // New negotiator with an empty knowledge base
 func New() *Negotiator {
 	return &Negotiator{
-		OptionMap: make(map[protocol.OptByte]OptionHandler),
+		optionHandlers: make(map[protocol.OptByte]OptionHandler),
 	}
 }
 
 // Know an handler makes the negotiator being able to deal with the corresponding incoming option
-func (m *Negotiator) Know(handler OptionHandler) {
-	m.OptionMap[handler.Option()] = handler
+func (m *Negotiator) Know(handler Handler) {
+	switch h := handler.(type) {
+	case ControlHandler:
+		log.Printf("Control Handler: %s", h.Command())
+		m.controlHandlers[h.Command()] = h
+	case OptionHandler:
+		log.Printf("Option Handler: %s", h.Option())
+		m.optionHandlers[h.Option()] = h
+	default:
+		log.Println("UNKNOWN HANDLER TYPE")
+	}
 }
 
-func (m *Negotiator) findHandler(option protocol.OptByte) OptionHandler {
-	handler, ok := m.OptionMap[option]
+func (m *Negotiator) findOptionHandler(option protocol.OptByte) OptionHandler {
+	handler, ok := m.optionHandlers[option]
 	if !ok {
 		return nil
 	}
@@ -35,7 +47,7 @@ func (m *Negotiator) findHandler(option protocol.OptByte) OptionHandler {
 // If there's an error needs to be dealt with, it'll be set in the second return value.
 func (m *Negotiator) Handle(p packet.Packet) (packet.Packet, error) {
 	if cmd, ok := p.(*packet.CommandPacket); ok {
-		handler := m.findHandler(cmd.Option)
+		handler := m.findOptionHandler(cmd.Option)
 		if handler == nil {
 			return nil, nil
 		}
@@ -47,7 +59,7 @@ func (m *Negotiator) Handle(p packet.Packet) (packet.Packet, error) {
 	}
 
 	if sub, ok := p.(*packet.SubPacket); ok {
-		handler := m.findHandler(sub.Option)
+		handler := m.findOptionHandler(sub.Option)
 		if handler == nil {
 			return nil, nil
 		}

@@ -7,7 +7,7 @@ var optionNames = map[OptByte]string{
 	5:   "STATUS",
 	6:   "TIMING-MARK",
 	24:  "TERMINAL-TYPE",
-	31:  "WINDOW-SIZE",
+	31:  "NEGOTIATE-ABOUT-WND-SIZE",
 	32:  "TERMINAL-SPEED",
 	33:  "REMOTE-FLOW-CONTROL",
 	34:  "LINE-MODE",

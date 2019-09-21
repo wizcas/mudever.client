@@ -43,7 +43,7 @@ const (
 	Status               = OptByte(5)
 	TimingMark           = OptByte(6)
 	TerminalType         = OptByte(24)
-	WindowSize           = OptByte(31)
+	NAWS                 = OptByte(31)
 	TerminalSpeed        = OptByte(32)
 	RemoteFlowControl    = OptByte(33)
 	LineMode             = OptByte(34)
