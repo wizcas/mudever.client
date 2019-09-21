@@ -2,8 +2,9 @@ package mtts
 
 import (
 	"fmt"
+	"log"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
+	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
@@ -36,6 +37,7 @@ const (
 
 // MTTS contains information for TerminalType negotiations.
 type MTTS struct {
+	*nego.OptionHandlerBase
 	// ClientName of the terminal including version preferably
 	ClientName string
 	// TerminalType which should be set to one of the 'Type*' enum values
@@ -53,10 +55,11 @@ func New(isUTF8 bool) *MTTS {
 		supportFlag += SupportUTF8
 	}
 	return &MTTS{
-		ClientName:   "MUDEVER 0.1",
-		TerminalType: TypeXTERM,
-		SupportFlag:  supportFlag,
-		queryTimes:   0,
+		OptionHandlerBase: nego.NewOptionHandlerBase(),
+		ClientName:        "MUDEVER 0.1",
+		TerminalType:      TypeXTERM,
+		SupportFlag:       supportFlag,
+		queryTimes:        0,
 	}
 }
 
@@ -65,28 +68,35 @@ func (h *MTTS) Option() telbyte.Option {
 	return telbyte.TTYPE
 }
 
-// Handshake implements OptionHandler, it respond to only DO & DONT
-func (h *MTTS) Handshake(inCmd telbyte.Command) (telbyte.Command, error) {
+// Handshake implements OptionHandler, it responds to only DO & DONT.
+// Other commands will be ignored.
+func (h *MTTS) Handshake(inCmd telbyte.Command) {
+	var res telbyte.Command
 	switch inCmd {
 	case telbyte.DO:
-		return telbyte.WILL, nil
+		res = telbyte.WILL
 	case telbyte.DONT:
+		res = telbyte.WONT
 		h.queryTimes = 0
-		return telbyte.WONT, nil
 	default:
-		return 0, negotiator.ErrIgnore
+		h.ChErr <- nego.ErrIgnore
+		return
 	}
+	h.ChOutCmd <- nego.NewHandledCmd(h, res)
+	log.Printf("MTTS replys %s", res)
 }
 
 // Subnegotiate implements OptionHandler, and works in the way described at:
 // https://tintin.sourceforge.io/protocols/mtts/
-func (h *MTTS) Subnegotiate(inParameter []byte) ([]byte, error) {
+func (h *MTTS) Subnegotiate(inParameter []byte) {
 	if len(inParameter) == 0 {
-		return nil, negotiator.ErrLackData
+		h.ChErr <- nego.ErrLackData
+		return
 	}
 	action := inParameter[0]
 	if action != SEND {
-		return nil, negotiator.ErrIgnore
+		h.ChErr <- nego.ErrIgnore
+		return
 	}
 	var payload []byte
 	switch h.queryTimes {
@@ -97,5 +107,6 @@ func (h *MTTS) Subnegotiate(inParameter []byte) ([]byte, error) {
 	default:
 		payload = []byte(fmt.Sprintf("MTTS %d", h.SupportFlag))
 	}
-	return append([]byte{IS}, payload...), nil
+	params := append([]byte{IS}, payload...)
+	h.ChOutSub <- nego.NewHandledSub(h, params)
 }

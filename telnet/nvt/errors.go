@@ -9,13 +9,15 @@ const (
 	errorRecv
 	errorSend
 	errorInput
+	errorNegotiator
 )
 
 var errorNames = map[errorKind]string{
-	errorSys:   "SYS",
-	errorRecv:  "RECV",
-	errorSend:  "SEND",
-	errorInput: "INPUT",
+	errorSys:        "SYS",
+	errorRecv:       "RECV",
+	errorSend:       "SEND",
+	errorInput:      "INPUT",
+	errorNegotiator: "NEGO",
 }
 
 func (k errorKind) String() string {

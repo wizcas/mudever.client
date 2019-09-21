@@ -1,7 +1,7 @@
 package naws
 
 import (
-	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
+	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
@@ -38,11 +38,11 @@ func (h *NAWS) Handshake(inCmd telbyte.Command) (telbyte.Command, error) {
 		h.submitting = false
 		return telbyte.WONT, nil
 	default:
-		return 0, negotiator.ErrIgnore
+		return 0, nego.ErrIgnore
 	}
 }
 
 // Subnegotiate implements OptionHandler
 func (h *NAWS) Subnegotiate(inParameter []byte) ([]byte, error) {
-	return nil, negotiator.ErrIgnore
+	return nil, nego.ErrIgnore
 }
