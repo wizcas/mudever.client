@@ -1,6 +1,6 @@
-package protocol
+package telbyte
 
-var optionNames = map[OptByte]string{
+var optionNames = map[Option]string{
 	0:   "BINARY-TRANSMISSION",
 	1:   "ECHO",
 	3:   "SUPPRESS-GO-AHEAD",
@@ -39,7 +39,7 @@ var optionNames = map[OptByte]string{
 	201: "GMCP", // Generic MUD Communication Protocol
 }
 
-var cmdNames = map[CmdByte]string{
+var cmdNames = map[Command]string{
 	// CONTROL FUNCTIONS
 	240: "SE",
 	241: "NOP",

@@ -4,19 +4,19 @@ import (
 	"log"
 
 	"github.com/wizcas/mudever.svc/telnet/packet"
-	"github.com/wizcas/mudever.svc/telnet/protocol"
+	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
 // Negotiator takes care of telnet negotiations
 type Negotiator struct {
-	controlHandlers map[protocol.CmdByte]ControlHandler
-	optionHandlers  map[protocol.OptByte]OptionHandler
+	controlHandlers map[telbyte.Command]ControlHandler
+	optionHandlers  map[telbyte.Option]OptionHandler
 }
 
 // New negotiator with an empty knowledge base
 func New() *Negotiator {
 	return &Negotiator{
-		optionHandlers: make(map[protocol.OptByte]OptionHandler),
+		optionHandlers: make(map[telbyte.Option]OptionHandler),
 	}
 }
 
@@ -34,7 +34,7 @@ func (m *Negotiator) Know(handler Handler) {
 	}
 }
 
-func (m *Negotiator) findOptionHandler(option protocol.OptByte) OptionHandler {
+func (m *Negotiator) findOptionHandler(option telbyte.Option) OptionHandler {
 	handler, ok := m.optionHandlers[option]
 	if !ok {
 		return nil

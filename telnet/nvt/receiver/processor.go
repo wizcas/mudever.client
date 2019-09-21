@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/wizcas/mudever.svc/telnet/packet"
-	"github.com/wizcas/mudever.svc/telnet/protocol"
+	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
 const (
@@ -67,20 +67,20 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 		if pc.inState(stateIAC) {
 			pc.delState(stateIAC)
 			switch {
-			case protocol.IAC.Eq(b): // IAC IAC (0xFF as plain data)
+			case telbyte.IAC.Eq(b): // IAC IAC (0xFF as plain data)
 				pc.buffer.WriteByte(b)
-			case protocol.SB.Eq(b): // IAC SB
+			case telbyte.SB.Eq(b): // IAC SB
 				pc.submitAsData(chOutput)
 				pc.addState(stateSub)
-			case protocol.SE.Eq(b): // IAC SE
+			case telbyte.SE.Eq(b): // IAC SE
 				buffer := pc.flush()
-				chOutput <- packet.NewSubPacket(protocol.OptByte(buffer[0]), buffer[1:])
+				chOutput <- packet.NewSubPacket(telbyte.Option(buffer[0]), buffer[1:])
 				pc.reset()
-			case b > byte(protocol.SE) && b < byte(protocol.SB): // IAC CMD
+			case b > byte(telbyte.SE) && b < byte(telbyte.SB): // IAC CMD
 				pc.submitAsData(chOutput)
-				chOutput <- packet.NewControlCommandPacket(protocol.CmdByte(b))
+				chOutput <- packet.NewControlCommandPacket(telbyte.Command(b))
 				pc.reset()
-			case b >= byte(protocol.WILL) && b <= byte(protocol.DONT): // IAC CMD OPTION
+			case b >= byte(telbyte.WILL) && b <= byte(telbyte.DONT): // IAC CMD OPTION
 				pc.submitAsData(chOutput)
 				pc.addState(stateCmd)
 				// Keep this byte as command
@@ -95,7 +95,7 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 		} else {
 			// Leading IAC is the escape signal, and we need to examine the next byte
 			// for further information
-			if protocol.IAC.Eq(b) {
+			if telbyte.IAC.Eq(b) {
 				// log.Println("iac")
 				pc.addState(stateIAC)
 				continue
@@ -105,7 +105,7 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 			if pc.inState(stateCmd) {
 				// log.Println("opt cmd ends")
 				buffer := pc.flush()
-				chOutput <- packet.NewOptionCommandPacket(protocol.CmdByte(buffer[0]), protocol.OptByte(b))
+				chOutput <- packet.NewOptionCommandPacket(telbyte.Command(buffer[0]), telbyte.Option(b))
 				pc.reset()
 				continue
 			}

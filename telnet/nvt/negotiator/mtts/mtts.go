@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
-	"github.com/wizcas/mudever.svc/telnet/protocol"
+	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
+// MTTS Sub-commands
 const (
 	IS   = 0
 	SEND = 1
@@ -59,22 +60,26 @@ func New(isUTF8 bool) *MTTS {
 	}
 }
 
-func (h *MTTS) Option() protocol.OptByte {
-	return protocol.TerminalType
+// Option implements OptionHandler
+func (h *MTTS) Option() telbyte.Option {
+	return telbyte.TTYPE
 }
 
-func (h *MTTS) Handshake(inCmd protocol.CmdByte) (protocol.CmdByte, error) {
+// Handshake implements OptionHandler, it respond to only DO & DONT
+func (h *MTTS) Handshake(inCmd telbyte.Command) (telbyte.Command, error) {
 	switch inCmd {
-	case protocol.DO:
-		return protocol.WILL, nil
-	case protocol.DONT:
+	case telbyte.DO:
+		return telbyte.WILL, nil
+	case telbyte.DONT:
 		h.queryTimes = 0
-		return protocol.WONT, nil
+		return telbyte.WONT, nil
 	default:
 		return 0, negotiator.ErrIgnore
 	}
 }
 
+// Subnegotiate implements OptionHandler, and works in the way described at:
+// https://tintin.sourceforge.io/protocols/mtts/
 func (h *MTTS) Subnegotiate(inParameter []byte) ([]byte, error) {
 	if len(inParameter) == 0 {
 		return nil, negotiator.ErrLackData

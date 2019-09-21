@@ -2,7 +2,7 @@ package naws
 
 import (
 	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
-	"github.com/wizcas/mudever.svc/telnet/protocol"
+	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
 // NAWS stands for Negotiate About Window Size, which is used for
@@ -24,19 +24,19 @@ func New() *NAWS {
 }
 
 // Option implements OptionHandler
-func (h *NAWS) Option() protocol.OptByte {
-	return protocol.NAWS
+func (h *NAWS) Option() telbyte.Option {
+	return telbyte.NAWS
 }
 
 // Handshake implements OptionHandler
-func (h *NAWS) Handshake(inCmd protocol.CmdByte) (protocol.CmdByte, error) {
+func (h *NAWS) Handshake(inCmd telbyte.Command) (telbyte.Command, error) {
 	switch inCmd {
-	case protocol.DO:
+	case telbyte.DO:
 		h.submitting = true
-		return protocol.WILL, nil
-	case protocol.DONT:
+		return telbyte.WILL, nil
+	case telbyte.DONT:
 		h.submitting = false
-		return protocol.WONT, nil
+		return telbyte.WONT, nil
 	default:
 		return 0, negotiator.ErrIgnore
 	}
