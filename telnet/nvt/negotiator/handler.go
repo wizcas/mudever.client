@@ -7,6 +7,7 @@ import (
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"go.uber.org/zap"
 )
 
 // Handler is registered to negotiator for telnet command interpretion
@@ -41,6 +42,7 @@ type OptionContext struct {
 	handler OptionHandler
 	sender  common.PacketSender
 	onError common.OnError
+	Logger  *zap.SugaredLogger
 }
 
 func newOptionContext(parentCtx context.Context, handler OptionHandler, ng *Negotiator) *OptionContext {
@@ -51,6 +53,7 @@ func newOptionContext(parentCtx context.Context, handler OptionHandler, ng *Nego
 		handler: handler,
 		sender:  ng.sender,
 		onError: ng.GotError,
+		Logger:  logger().Named(handler.Option().String()),
 	}
 }
 

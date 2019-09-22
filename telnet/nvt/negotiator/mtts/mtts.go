@@ -2,7 +2,6 @@ package mtts
 
 import (
 	"fmt"
-	"log"
 
 	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
@@ -69,7 +68,7 @@ func (h *MTTS) Option() telbyte.Option {
 // Handshake implements OptionHandler, it responds to only DO & DONT.
 // Other commands will be ignored.
 func (h *MTTS) Handshake(ctx *nego.OptionContext, inCmd telbyte.Command) {
-	log.Println("MTTS handshaking")
+	ctx.Logger.Debug("MTTS handshaking")
 	var res telbyte.Command
 	switch inCmd {
 	case telbyte.DO:
@@ -81,7 +80,7 @@ func (h *MTTS) Handshake(ctx *nego.OptionContext, inCmd telbyte.Command) {
 		return
 	}
 	ctx.SendCmd(res)
-	log.Printf("MTTS replys %s", res)
+	ctx.Logger.Debugf("MTTS replys %s", res)
 }
 
 // Subnegotiate implements OptionHandler, and works in the way described at:

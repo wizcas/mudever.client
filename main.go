@@ -1,10 +1,9 @@
 package main
 
 import (
-	"log"
-
 	"github.com/wizcas/mudever.svc/telnet"
 	"github.com/wizcas/mudever.svc/telnet/nvt"
+	"github.com/wizcas/mudever.svc/utils"
 )
 
 // MudGame contains the profile of a mud server
@@ -16,13 +15,17 @@ type MudGame struct {
 var (
 	game = MudGame{
 		Name:   "pkuxkx",
-		Server: telnet.Server{"mud.pkuxkx.net", 8080},
+		Server: telnet.NewServer("mud.pkuxkx.net", 8080),
 	}
 )
 
 func main() {
+	utils.InitLogger("main", false)
+	defer utils.Logger().Sync()
 	client := telnet.NewClient(nvt.EncodingGB18030)
 	if err := client.Connect(game.Server); err != nil {
-		log.Fatalf("[FATAL ERROR]: %v\n", err)
+		utils.Logger().Fatalw("unrecoverable error",
+			"message", err,
+		)
 	}
 }

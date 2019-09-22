@@ -34,7 +34,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 	rootCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	t.receiver = receiver.New(r)
+	t.receiver = receiver.New(log(), r)
 	recvCtx, _ := context.WithCancel(rootCtx)
 	go t.receiver.Run(recvCtx)
 	t.sender = sender.New(w)

@@ -2,11 +2,13 @@ package nego
 
 import (
 	"context"
-	"log"
+
+	"github.com/wizcas/mudever.svc/telnet/nvt/log"
 
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"go.uber.org/zap"
 )
 
 // Negotiator takes care of telnet negotiations
@@ -17,6 +19,10 @@ type Negotiator struct {
 
 	chInput chan packet.Packet
 	sender  common.PacketSender
+}
+
+func logger() *zap.SugaredLogger {
+	return log.Logger().Named("nego")
 }
 
 // New negotiator takes a PacketSender for its handlers to feed replies.
@@ -36,13 +42,13 @@ func New(sender common.PacketSender) *Negotiator {
 func (nego *Negotiator) Know(handler Handler) {
 	switch h := handler.(type) {
 	case ControlHandler:
-		log.Printf("Control Handler: %s", h.Command())
+		logger().Debugf("Control Handler: %s", h.Command())
 		nego.controlHandlers[h.Command()] = h
 	case OptionHandler:
-		log.Printf("Option Handler: %s", h.Option())
+		logger().Debugf("Option Handler: %s", h.Option())
 		nego.optionHandlers[h.Option()] = h
 	default:
-		log.Printf("UNKNOWN HANDLER TYPE: %t", h)
+		logger().Debugf("UNKNOWN HANDLER TYPE: %t", h)
 	}
 }
 
@@ -59,7 +65,7 @@ func (nego *Negotiator) Run(ctx context.Context) {
 			nego.handle(ctx, input)
 		case <-ctx.Done():
 			nego.dispose()
-			log.Println("nego stopped")
+			logger().Info("nego stopped")
 			return
 		}
 	}
@@ -72,19 +78,19 @@ func (nego *Negotiator) dispose() {
 func (nego *Negotiator) findOptionHandler(option telbyte.Option) OptionHandler {
 	handler, ok := nego.optionHandlers[option]
 	if !ok {
-		log.Printf("[WARN] Handler for option <%s> not found", option)
+		logger().Warnf("[WARN] no handler: %s", option)
 		return nil
 	}
 	return handler
 }
 
 func (nego *Negotiator) handle(ctx context.Context, input packet.Packet) {
-	log.Printf("\x1b[32m<NEGO RECV>\x1b[0m %s\n", input)
+	logger().Debugf("\x1b[32m<RECV>\x1b[0m %s\n", input)
 	switch p := input.(type) {
 	case *packet.CommandPacket:
 		handler := nego.findOptionHandler(p.Option)
 		if handler != nil {
-			log.Printf("handshake on <%s %s>", p.Command, p.Option)
+			logger().Debugf("handshake on <%s %s>", p.Command, p.Option)
 			go handler.Handshake(newOptionContext(ctx, handler, nego), p.Command)
 		}
 	case *packet.SubPacket:

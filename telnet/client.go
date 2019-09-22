@@ -15,6 +15,28 @@ type Server struct {
 	Port uint16
 }
 
+// NewServer returns a specified server config.
+// If host is not given, "127.0.0.1" will be set as default.
+// If port is not given, 23 will be set as default.
+func NewServer(host string, port uint16) Server {
+	host = strings.TrimSpace(host)
+	if len(host) == 0 {
+		host = "127.0.0.1"
+	}
+	if port == 0 {
+		port = 23
+	}
+	return Server{host, port}
+}
+
+func (s Server) Addr() string {
+	return s.String()
+}
+
+func (s Server) String() string {
+	return fmt.Sprintf("%s:%d", s.Host, s.Port)
+}
+
 type Client struct {
 	conn     net.Conn
 	reader   *stream.Reader
@@ -30,15 +52,7 @@ func NewClient(encoding nvt.Encoding) *Client {
 }
 
 func dial(server Server) (net.Conn, error) {
-	if len(strings.TrimSpace(server.Host)) == 0 {
-		server.Host = "127.0.0.1"
-	}
-	if server.Port == 0 {
-		server.Port = 23
-	}
-	addr := fmt.Sprintf("%s:%d", server.Host, server.Port)
-
-	conn, err := net.Dial("tcp", addr)
+	conn, err := net.Dial("tcp", server.Addr())
 	if err != nil {
 		return nil, err
 	}
@@ -52,7 +66,7 @@ func (c *Client) Connect(server Server) error {
 		return err
 	}
 	if conn == nil {
-		panic("empty connection")
+		return fmt.Errorf("cannot establish connection to %s", server)
 	}
 	c.conn = conn
 	c.reader = stream.NewReader(conn)
