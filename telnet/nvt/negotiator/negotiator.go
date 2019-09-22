@@ -1,10 +1,8 @@
 package nego
 
 import (
-	"container/list"
 	"context"
 	"log"
-	"sync"
 
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
@@ -17,13 +15,11 @@ type Negotiator struct {
 	controlHandlers map[telbyte.Command]ControlHandler
 	optionHandlers  map[telbyte.Option]OptionHandler
 
-	chOutput     chan<- packet.Packet
 	chInput      chan packet.Packet
 	ChHandledCmd chan HandledCommand
 	ChHandledSub chan HandledSub
 
-	replyQ    *list.List
-	replySync *sync.Mutex
+	replier *replier
 }
 
 // New negotiator with an empty knowledge base
@@ -33,13 +29,11 @@ func New(chOutput chan<- packet.Packet) *Negotiator {
 		optionHandlers:  make(map[telbyte.Option]OptionHandler),
 		controlHandlers: make(map[telbyte.Command]ControlHandler),
 
-		chOutput:     chOutput,
-		chInput:      make(chan packet.Packet, 5),
-		ChHandledCmd: make(chan HandledCommand, 5),
-		ChHandledSub: make(chan HandledSub, 5),
+		chInput:      make(chan packet.Packet),
+		ChHandledCmd: make(chan HandledCommand),
+		ChHandledSub: make(chan HandledSub),
 
-		replyQ:    list.New(),
-		replySync: &sync.Mutex{},
+		replier: newReplier(chOutput),
 	}
 }
 
@@ -69,41 +63,27 @@ func (nego *Negotiator) Run(ctx context.Context) {
 	// Send queued replies when possible but don't block the input flow
 	ctxReply, cancelReply := context.WithCancel(ctx)
 	defer cancelReply()
-	go func(ctx context.Context) {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			default:
-				p := nego.deReply()
-				if p != nil {
-					nego.chOutput <- p
-				}
-			}
-		}
-	}(ctxReply)
+	go nego.replier.run(ctxReply)
 
-LOOP:
 	for {
 		select {
 		case input := <-nego.chInput:
 			nego.handle(input)
 		case hcmd := <-nego.ChHandledCmd:
 			p := packet.NewOptionCommandPacket(hcmd.Command, hcmd.Handler.Option())
-			nego.enReply(p)
+			nego.replier.enqueue(p)
 		case hsub := <-nego.ChHandledSub:
 			p := packet.NewSubPacket(hsub.Handler.Option(), hsub.Parameter...)
-			nego.enReply(p)
+			nego.replier.enqueue(p)
 		case <-ctx.Done():
-			break LOOP
+			nego.dispose()
+			log.Println("nego stopped")
+			return
 		}
 	}
-	nego.dispose()
-	log.Println("nego stopped")
 }
 
 func (nego *Negotiator) dispose() {
-	nego.replyQ.Init()
 	nego.BaseDispose()
 }
 
@@ -131,28 +111,4 @@ func (nego *Negotiator) handle(input packet.Packet) {
 			go handler.Subnegotiate(p.Parameter)
 		}
 	}
-}
-
-func (nego *Negotiator) enReply(p packet.Packet) {
-	nego.replySync.Lock()
-	defer nego.replySync.Unlock()
-	nego.replyQ.PushBack(p)
-}
-
-func (nego *Negotiator) deReply() packet.Packet {
-	nego.replySync.Lock()
-	e := nego.replyQ.Front()
-	if e == nil {
-		nego.replySync.Unlock()
-		return nil
-	}
-	nego.replyQ.Remove(e)
-	nego.replySync.Unlock()
-	reply, ok := e.Value.(packet.Packet)
-	if !ok {
-		log.Printf("error element in nego outgoing queue: %v", e.Value)
-		return nil
-	}
-	log.Printf("\x1b[36m<NEGO RPLY>\x1b[0m %s\n", reply)
-	return reply
 }

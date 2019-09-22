@@ -36,11 +36,12 @@ func New(src io.Reader) *Receiver {
 // Any processed packets are input into Receiver.ChPacket, and errors
 // into Receiver.ChErr
 func (r *Receiver) Run(ctx context.Context) {
-LOOP:
 	for {
 		select {
 		case <-ctx.Done():
-			break LOOP
+			r.dispose()
+			log.Println("receiver stopped.")
+			return
 		default:
 			data, err := r.readStream()
 			log.Printf("[PACKET RECV] len: %d", len(data))
@@ -50,8 +51,6 @@ LOOP:
 			}
 		}
 	}
-	r.dispose()
-	log.Println("receiver stopped.")
 }
 
 // Output packet processed by received

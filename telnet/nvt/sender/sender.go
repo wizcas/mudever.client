@@ -28,12 +28,13 @@ func New(dst io.Writer) *Sender {
 
 // Run the sender loop for sending packets
 func (s *Sender) Run(ctx context.Context) {
-LOOP:
 	for {
 		select {
 		case p := <-s.chInput:
 			if p != nil {
+				log.Printf("\x1b[31m<SEND GOT>\x1b[0m %s\n", p)
 				if data, err := p.Serialize(); err != nil {
+					log.Printf("\x1b[31m<SEND ERR>\x1b[0m %v\n", err)
 					s.ChErr <- err
 				} else {
 					if n, err := s.dst.Write(data); err != nil {
@@ -45,11 +46,11 @@ LOOP:
 				log.Printf("\x1b[31m<SEND SUCC>\x1b[0m %s\n", p)
 			}
 		case <-ctx.Done():
-			break LOOP
+			s.dispose()
+			log.Println("sender stopped.")
+			return
 		}
 	}
-	s.dispose()
-	log.Println("sender stopped.")
 }
 
 // Input channel for pushing packet into sender
