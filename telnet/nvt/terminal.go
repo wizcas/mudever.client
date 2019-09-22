@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"log"
 	"os"
 
 	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
@@ -52,6 +53,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 	for {
 		select {
 		case pkt := <-t.receiver.Output():
+			log.Printf("\x1b[32m<TERM RECV>\x1b[0m %s\n", pkt)
 			switch p := pkt.(type) {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)

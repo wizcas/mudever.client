@@ -42,6 +42,7 @@ LOOP:
 						s.ChErr <- fmt.Errorf("data inconsistency: %d written (%d intended)", n, len(data))
 					}
 				}
+				log.Printf("\x1b[31m<SEND SUCC>\x1b[0m %s\n", p)
 			}
 		case <-ctx.Done():
 			break LOOP
