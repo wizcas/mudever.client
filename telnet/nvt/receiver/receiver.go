@@ -2,20 +2,21 @@ package receiver
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"log"
 
+	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
 )
 
 // Receiver reads data from network stream and parses it into Packets,
 // which is comprehensible to Terminal
 type Receiver struct {
+	*common.SubProc
 	src      io.Reader
 	alloc    []byte
-	ChErr    chan error
-	ChOutput chan packet.Packet
-	ChStop   chan struct{}
+	chOutput chan packet.Packet
 
 	processor *processor
 }
@@ -23,11 +24,10 @@ type Receiver struct {
 // New telnet data receiver
 func New(src io.Reader) *Receiver {
 	return &Receiver{
+		SubProc:   common.NewSubProc(),
 		src:       src,
 		alloc:     make([]byte, 128),
-		ChErr:     make(chan error),
-		ChOutput:  make(chan packet.Packet),
-		ChStop:    make(chan struct{}),
+		chOutput:  make(chan packet.Packet),
 		processor: newProcessor(),
 	}
 }
@@ -35,16 +35,16 @@ func New(src io.Reader) *Receiver {
 // Run the receiver loop to read and process data from incoming stream.
 // Any processed packets are input into Receiver.ChPacket, and errors
 // into Receiver.ChErr
-func (r *Receiver) Run() {
+func (r *Receiver) Run(ctx context.Context) {
 LOOP:
 	for {
 		select {
-		case <-r.ChStop:
+		case <-ctx.Done():
 			break LOOP
 		default:
 			data, err := r.readStream()
 			log.Printf("[PACKET RECV] len: %d", len(data))
-			r.processor.proc(data, r.ChOutput, r.ChErr)
+			r.processor.proc(data, r.chOutput, r.ChErr)
 			if err != nil {
 				r.ChErr <- err
 			}
@@ -54,9 +54,9 @@ LOOP:
 	log.Println("receiver stopped.")
 }
 
-// Stop the receiver and release resources
-func (r *Receiver) Stop() {
-	r.ChStop <- struct{}{}
+// Output packet processed by received
+func (r *Receiver) Output() <-chan packet.Packet {
+	return r.chOutput
 }
 
 func (r *Receiver) readStream() ([]byte, error) {
@@ -77,7 +77,6 @@ func (r *Receiver) readStream() ([]byte, error) {
 }
 
 func (r *Receiver) dispose() {
-	close(r.ChOutput)
-	close(r.ChErr)
-	close(r.ChStop)
+	close(r.chOutput)
+	r.BaseDispose()
 }

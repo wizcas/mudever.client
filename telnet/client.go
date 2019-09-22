@@ -1,6 +1,7 @@
 package telnet
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"strings"
@@ -19,6 +20,7 @@ type Client struct {
 	reader   *stream.Reader
 	writer   *stream.Writer
 	terminal *nvt.Terminal
+	stopFn   context.CancelFunc
 }
 
 func NewClient(encoding nvt.Encoding) *Client {

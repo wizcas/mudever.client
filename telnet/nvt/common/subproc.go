@@ -7,14 +7,8 @@ type SubProc struct {
 
 func NewSubProc() *SubProc {
 	return &SubProc{
-		ChStop: make(chan struct{}),
-		ChErr:  make(chan error),
+		ChErr: make(chan error),
 	}
-}
-
-func (p *SubProc) Stop() {
-	p.ChStop <- struct{}{}
-	close(p.ChStop)
 }
 
 func (p *SubProc) BaseDispose() {

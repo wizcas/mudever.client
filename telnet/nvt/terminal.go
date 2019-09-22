@@ -3,7 +3,7 @@ package nvt
 import (
 	"bufio"
 	"bytes"
-	"log"
+	"context"
 	"os"
 
 	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
@@ -31,22 +31,27 @@ func NewTerminal(encoding Encoding) *Terminal {
 
 // Start the terminal session
 func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
+	rootCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	ng := nego.New()
+	t.receiver = receiver.New(r)
+	recvCtx, _ := context.WithCancel(rootCtx)
+	go t.receiver.Run(recvCtx)
+	t.sender = sender.New(w)
+	sendCtx, _ := context.WithCancel(rootCtx)
+	go t.sender.Run(sendCtx)
+	chInputErr := make(chan error)
+	go t.input(chInputErr)
+
+	ng := nego.New(t.sender.Input())
 	ng.Know(mtts.New(false))
 	ng.Know(naws.New())
-	go ng.Run()
-
-	chInputErr := make(chan error)
-	t.receiver = receiver.New(r)
-	t.sender = sender.New(w)
-	go t.receiver.Run()
-	go t.sender.Run()
-	go t.input(chInputErr)
+	ngCtx, _ := context.WithCancel(rootCtx)
+	go ng.Run(ngCtx)
 
 	for {
 		select {
-		case pkt := <-t.receiver.ChOutput:
+		case pkt := <-t.receiver.Output():
 			switch p := pkt.(type) {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)
@@ -56,20 +61,18 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 				os.Stdout.Write(output)
 			case *packet.CommandPacket, *packet.SubPacket:
 				// Send commands and subnegotiations to Negotiator
-				log.Printf("\x1b[32m<RECV>\x1b[0m %s\n", p)
-				ng.ChInput <- p
+				ng.Consider(p)
 			}
 		case err := <-t.receiver.ChErr:
 			return terminalError{errorRecv, err}
-		case reply := <-ng.ChOutput:
-			log.Printf("\x1b[36m<RPLY>\x1b[0m %s\n", reply)
-			t.sender.ChInput <- reply
 		case err := <-ng.ChErr:
 			return terminalError{errorNegotiator, err}
 		case err := <-t.sender.ChErr:
 			return terminalError{errorSend, err}
 		case err := <-chInputErr:
 			return terminalError{errorInput, err}
+		case <-rootCtx.Done():
+			return rootCtx.Err()
 		}
 	}
 }
@@ -101,7 +104,7 @@ func (t *Terminal) input(chErr chan error) {
 			chErr <- err
 		}
 		linePacket := packet.NewDataPacket(line)
-		t.sender.ChInput <- linePacket
+		t.sender.Input() <- linePacket
 	}
 }
 
