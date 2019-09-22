@@ -22,8 +22,12 @@ func _newProcTester() *procTester {
 	}
 }
 
+func (pt *procTester) onError(err error) {
+	pt.chErr <- err
+}
+
 func (pt *procTester) test(data []byte) {
-	go pt.proc(data, pt.chOutput, pt.chErr)
+	go pt.proc(data, pt.chOutput, pt.onError)
 }
 
 func _assertData(p packet.Packet, expectData []byte) {

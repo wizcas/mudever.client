@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
@@ -60,7 +61,7 @@ func (pc *processor) reset() {
 	pc.value = 0
 }
 
-func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan error) {
+func (pc *processor) proc(data []byte, chOutput chan packet.Packet, onError common.OnError) {
 	for _, b := range data {
 		// log.Printf("%v\n", b)
 		// This byte next to IAC needs be unescaped
@@ -85,12 +86,12 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 				pc.addState(stateCmd)
 				// Keep this byte as command
 				if err := pc.buffer.WriteByte(b); err != nil {
-					chErr <- err
+					onError(err)
 				}
 			default:
 				pc.submitAsData(chOutput)
 				// Invalid data
-				chErr <- fmt.Errorf("Wrong data: [IAC %v]", b)
+				onError(fmt.Errorf("Wrong data: [IAC %v]", b))
 			}
 		} else {
 			// Leading IAC is the escape signal, and we need to examine the next byte
@@ -113,7 +114,7 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, chErr chan e
 			// For other cases, including normal data and subnegotiation data,
 			// just buffer the byte until further proceeding
 			if err := pc.buffer.WriteByte(b); err != nil {
-				chErr <- err
+				onError(err)
 			}
 		}
 	}

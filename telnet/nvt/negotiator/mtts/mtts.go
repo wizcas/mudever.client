@@ -37,7 +37,6 @@ const (
 
 // MTTS contains information for TerminalType negotiations.
 type MTTS struct {
-	*nego.OptionHandlerBase
 	// ClientName of the terminal including version preferably
 	ClientName string
 	// TerminalType which should be set to one of the 'Type*' enum values
@@ -55,11 +54,10 @@ func New(isUTF8 bool) *MTTS {
 		supportFlag += SupportUTF8
 	}
 	return &MTTS{
-		OptionHandlerBase: nego.NewOptionHandlerBase(),
-		ClientName:        "MUDEVER 0.1",
-		TerminalType:      TypeXTERM,
-		SupportFlag:       supportFlag,
-		queryTimes:        0,
+		ClientName:   "MUDEVER 0.1",
+		TerminalType: TypeXTERM,
+		SupportFlag:  supportFlag,
+		queryTimes:   0,
 	}
 }
 
@@ -70,7 +68,8 @@ func (h *MTTS) Option() telbyte.Option {
 
 // Handshake implements OptionHandler, it responds to only DO & DONT.
 // Other commands will be ignored.
-func (h *MTTS) Handshake(inCmd telbyte.Command) {
+func (h *MTTS) Handshake(ctx *nego.OptionContext, inCmd telbyte.Command) {
+	log.Println("MTTS handshaking")
 	var res telbyte.Command
 	switch inCmd {
 	case telbyte.DO:
@@ -81,15 +80,15 @@ func (h *MTTS) Handshake(inCmd telbyte.Command) {
 	default:
 		return
 	}
-	h.ChOutCmd <- nego.NewHandledCmd(h, res)
+	ctx.SendCmd(res)
 	log.Printf("MTTS replys %s", res)
 }
 
 // Subnegotiate implements OptionHandler, and works in the way described at:
 // https://tintin.sourceforge.io/protocols/mtts/
-func (h *MTTS) Subnegotiate(inParameter []byte) {
+func (h *MTTS) Subnegotiate(ctx *nego.OptionContext, inParameter []byte) {
 	if len(inParameter) == 0 {
-		h.ChErr <- nego.ErrLackData
+		ctx.GotError(nego.ErrLackData)
 		return
 	}
 	action := inParameter[0]
@@ -106,5 +105,5 @@ func (h *MTTS) Subnegotiate(inParameter []byte) {
 		payload = []byte(fmt.Sprintf("MTTS %d", h.SupportFlag))
 	}
 	params := append([]byte{IS}, payload...)
-	h.ChOutSub <- nego.NewHandledSub(h, params)
+	ctx.SendSub(params)
 }

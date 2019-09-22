@@ -1,16 +1,16 @@
 package nego
 
 import (
+	"context"
 	"errors"
 
+	"github.com/wizcas/mudever.svc/telnet/nvt/common"
+	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
 // Handler is registered to negotiator for telnet command interpretion
 type Handler interface {
-	// Initialize should store the passed-in negotiator and use it for further message delivery,
-	// via its chHandled* channels
-	Initialize(nego *Negotiator)
 }
 
 // ControlHandler takes care of control commands (e.g. GA, IP, etc.) in its Handle function.
@@ -26,8 +26,8 @@ type ControlHandler interface {
 type OptionHandler interface {
 	Handler
 	Option() telbyte.Option
-	Handshake(inCmd telbyte.Command)
-	Subnegotiate(inParameter []byte)
+	Handshake(ctx *OptionContext, inCmd telbyte.Command)
+	Subnegotiate(ctx *OptionContext, inParameter []byte)
 }
 
 // Errors caused by handlers
@@ -35,41 +35,37 @@ var (
 	ErrLackData = errors.New("LACK OF DATA")
 )
 
-type HandledCommand struct {
-	Handler OptionHandler
-	Command telbyte.Command
+type OptionContext struct {
+	context.Context
+	Cancel  context.CancelFunc
+	handler OptionHandler
+	sender  common.PacketSender
+	onError common.OnError
 }
 
-func NewHandledCmd(handler OptionHandler, cmd telbyte.Command) HandledCommand {
-	return HandledCommand{
-		Handler: handler,
-		Command: cmd,
+func newOptionContext(parentCtx context.Context, handler OptionHandler, ng *Negotiator) *OptionContext {
+	ctx, cancel := context.WithCancel(parentCtx)
+	return &OptionContext{
+		Context: ctx,
+		Cancel:  cancel,
+		handler: handler,
+		sender:  ng.sender,
+		onError: ng.GotError,
 	}
 }
 
-type HandledSub struct {
-	Handler   OptionHandler
-	Parameter [][]byte
+func (c *OptionContext) GotError(err error) {
+	c.onError(err)
 }
-
-func NewHandledSub(handler OptionHandler, parameters ...[]byte) HandledSub {
-	return HandledSub{
-		Handler:   handler,
-		Parameter: parameters,
+func (c *OptionContext) SendCmd(cmd telbyte.Command) {
+	p := packet.NewOptionCommandPacket(cmd, c.handler.Option())
+	if err := c.sender.Send(p); err != nil {
+		c.GotError(err)
 	}
 }
-
-type OptionHandlerBase struct {
-	ChOutCmd chan HandledCommand
-	ChOutSub chan HandledSub
-	ChErr    chan error
-}
-
-func NewOptionHandlerBase() *OptionHandlerBase {
-	return &OptionHandlerBase{}
-}
-func (h *OptionHandlerBase) Initialize(nego *Negotiator) {
-	h.ChOutCmd = nego.ChHandledCmd
-	h.ChOutSub = nego.ChHandledSub
-	h.ChErr = nego.ChErr
+func (c *OptionContext) SendSub(parameters ...[]byte) {
+	p := packet.NewSubPacket(c.handler.Option(), parameters...)
+	if err := c.sender.Send(p); err != nil {
+		c.GotError(err)
+	}
 }

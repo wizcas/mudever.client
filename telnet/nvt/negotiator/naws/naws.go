@@ -10,7 +10,6 @@ import (
 // NAWS stands for Negotiate About Window Size, which is used for
 // dealing with telnet option 31
 type NAWS struct {
-	*nego.OptionHandlerBase
 	// Width is defined as how many characters can be displayed horizontally.
 	// Value 0 means let server side decide the width.
 	Width uint16
@@ -23,9 +22,7 @@ type NAWS struct {
 
 // New an NAWS object
 func New() *NAWS {
-	return &NAWS{
-		OptionHandlerBase: nego.NewOptionHandlerBase(),
-	}
+	return &NAWS{}
 }
 
 // Option implements OptionHandler
@@ -34,7 +31,7 @@ func (h *NAWS) Option() telbyte.Option {
 }
 
 // Handshake implements OptionHandler
-func (h *NAWS) Handshake(inCmd telbyte.Command) {
+func (h *NAWS) Handshake(ctx *nego.OptionContext, inCmd telbyte.Command) {
 	var reply telbyte.Command
 	switch inCmd {
 	case telbyte.DO:
@@ -46,20 +43,21 @@ func (h *NAWS) Handshake(inCmd telbyte.Command) {
 	default:
 		return
 	}
-	h.ChOutCmd <- nego.NewHandledCmd(h, reply)
+	ctx.SendCmd(reply)
 	if h.submitting {
-		h.ChOutSub <- nego.NewHandledSub(h, h.encodeParameter())
+		ctx.SendSub(
+			encodeWSValue(h.Width),
+			encodeWSValue(h.Height),
+		)
 	}
 }
 
 // Subnegotiate implements OptionHandler
-func (h *NAWS) Subnegotiate(inParameter []byte) {
+func (h *NAWS) Subnegotiate(ctx *nego.OptionContext, inParameter []byte) {
 }
 
-func (h *NAWS) encodeParameter() []byte {
-	bw := make([]byte, 2, 2)
-	bh := make([]byte, 2, 2)
-	binary.BigEndian.PutUint16(bw, h.Width)
-	binary.BigEndian.PutUint16(bh, h.Height)
-	return append(bw, bh...)
+func encodeWSValue(val uint16) []byte {
+	b2 := make([]byte, 2, 2)
+	binary.BigEndian.PutUint16(b2, val)
+	return b2
 }

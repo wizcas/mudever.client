@@ -45,9 +45,9 @@ func (r *Receiver) Run(ctx context.Context) {
 		default:
 			data, err := r.readStream()
 			log.Printf("[PACKET RECV] len: %d", len(data))
-			r.processor.proc(data, r.chOutput, r.ChErr)
+			go r.processor.proc(data, r.chOutput, r.GotError)
 			if err != nil {
-				r.ChErr <- err
+				r.GotError(err)
 			}
 		}
 	}

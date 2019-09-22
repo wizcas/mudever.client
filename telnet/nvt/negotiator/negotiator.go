@@ -15,25 +15,20 @@ type Negotiator struct {
 	controlHandlers map[telbyte.Command]ControlHandler
 	optionHandlers  map[telbyte.Option]OptionHandler
 
-	chInput      chan packet.Packet
-	ChHandledCmd chan HandledCommand
-	ChHandledSub chan HandledSub
-
-	replier *replier
+	chInput chan packet.Packet
+	sender  common.PacketSender
 }
 
-// New negotiator with an empty knowledge base
-func New(chOutput chan<- packet.Packet) *Negotiator {
+// New negotiator takes a PacketSender for its handlers to feed replies.
+// It is created with an empty knowledge base, i.e. you'll have to feed in
+// Handlers with Know() method.
+func New(sender common.PacketSender) *Negotiator {
 	return &Negotiator{
 		SubProc:         common.NewSubProc(),
 		optionHandlers:  make(map[telbyte.Option]OptionHandler),
 		controlHandlers: make(map[telbyte.Command]ControlHandler),
-
-		chInput:      make(chan packet.Packet),
-		ChHandledCmd: make(chan HandledCommand),
-		ChHandledSub: make(chan HandledSub),
-
-		replier: newReplier(chOutput),
+		chInput:         make(chan packet.Packet),
+		sender:          sender,
 	}
 }
 
@@ -47,9 +42,8 @@ func (nego *Negotiator) Know(handler Handler) {
 		log.Printf("Option Handler: %s", h.Option())
 		nego.optionHandlers[h.Option()] = h
 	default:
-		log.Println("UNKNOWN HANDLER TYPE")
+		log.Printf("UNKNOWN HANDLER TYPE: %t", h)
 	}
-	handler.Initialize(nego)
 }
 
 // Consider how to deal with or to ignore the packet
@@ -59,22 +53,10 @@ func (nego *Negotiator) Consider(p packet.Packet) {
 
 // Run the negotiator in a goroutine for processing any input and output packets
 func (nego *Negotiator) Run(ctx context.Context) {
-
-	// Send queued replies when possible but don't block the input flow
-	ctxReply, cancelReply := context.WithCancel(ctx)
-	defer cancelReply()
-	go nego.replier.run(ctxReply)
-
 	for {
 		select {
 		case input := <-nego.chInput:
-			nego.handle(input)
-		case hcmd := <-nego.ChHandledCmd:
-			p := packet.NewOptionCommandPacket(hcmd.Command, hcmd.Handler.Option())
-			nego.replier.enqueue(p)
-		case hsub := <-nego.ChHandledSub:
-			p := packet.NewSubPacket(hsub.Handler.Option(), hsub.Parameter...)
-			nego.replier.enqueue(p)
+			nego.handle(ctx, input)
 		case <-ctx.Done():
 			nego.dispose()
 			log.Println("nego stopped")
@@ -96,19 +78,19 @@ func (nego *Negotiator) findOptionHandler(option telbyte.Option) OptionHandler {
 	return handler
 }
 
-func (nego *Negotiator) handle(input packet.Packet) {
+func (nego *Negotiator) handle(ctx context.Context, input packet.Packet) {
 	log.Printf("\x1b[32m<NEGO RECV>\x1b[0m %s\n", input)
 	switch p := input.(type) {
 	case *packet.CommandPacket:
 		handler := nego.findOptionHandler(p.Option)
 		if handler != nil {
 			log.Printf("handshake on <%s %s>", p.Command, p.Option)
-			go handler.Handshake(p.Command)
+			go handler.Handshake(newOptionContext(ctx, handler, nego), p.Command)
 		}
 	case *packet.SubPacket:
 		handler := nego.findOptionHandler(p.Option)
 		if handler != nil {
-			go handler.Subnegotiate(p.Parameter)
+			go handler.Subnegotiate(newOptionContext(ctx, handler, nego), p.Parameter)
 		}
 	}
 }

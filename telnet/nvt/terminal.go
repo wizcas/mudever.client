@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"log"
 	"os"
 
 	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
@@ -44,7 +43,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 	chInputErr := make(chan error)
 	go t.input(chInputErr)
 
-	ng := nego.New(t.sender.Input())
+	ng := nego.New(t.sender)
 	ng.Know(mtts.New(false))
 	ng.Know(naws.New())
 	ngCtx, _ := context.WithCancel(rootCtx)
@@ -53,7 +52,6 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 	for {
 		select {
 		case pkt := <-t.receiver.Output():
-			log.Printf("\x1b[32m<TERM RECV>\x1b[0m %s\n", pkt)
 			switch p := pkt.(type) {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)
@@ -65,11 +63,11 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 				// Send commands and subnegotiations to Negotiator
 				ng.Consider(p)
 			}
-		case err := <-t.receiver.ChErr:
+		case err := <-t.receiver.Err():
 			return terminalError{errorRecv, err}
-		case err := <-ng.ChErr:
+		case err := <-ng.Err():
 			return terminalError{errorNegotiator, err}
-		case err := <-t.sender.ChErr:
+		case err := <-t.sender.Err():
 			return terminalError{errorSend, err}
 		case err := <-chInputErr:
 			return terminalError{errorInput, err}
@@ -106,7 +104,9 @@ func (t *Terminal) input(chErr chan error) {
 			chErr <- err
 		}
 		linePacket := packet.NewDataPacket(line)
-		t.sender.Input() <- linePacket
+		if err := t.sender.Send(linePacket); err != nil {
+			chErr <- err
+		}
 	}
 }
 
