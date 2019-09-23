@@ -36,13 +36,19 @@ var (
 	ErrLackData = errors.New("LACK OF DATA")
 )
 
+// OptionContext passes necessary callbacks and objects, such as logger, context, etc., to
+// option handlers. Handler should call SendCmd() or SendSub() to write data back to terminal,
+// and call GotError() to notify terminal on error occurance. The context is cancelled when
+// Cancel() is called manually or its creator's (i.e. negotiator's) context is cancelled.
 type OptionContext struct {
 	context.Context
-	Cancel  context.CancelFunc
 	handler OptionHandler
 	sender  common.PacketSender
 	onError common.OnError
-	Logger  *zap.SugaredLogger
+	// Cancel the handler's context when needed.
+	Cancel context.CancelFunc
+	// Logger provides a main.nvt logger with the option's name as the value of 'handler' field.
+	Logger *zap.SugaredLogger
 }
 
 func newOptionContext(parentCtx context.Context, handler OptionHandler, ng *Negotiator) *OptionContext {
@@ -57,15 +63,22 @@ func newOptionContext(parentCtx context.Context, handler OptionHandler, ng *Nego
 	}
 }
 
+// GotError should be called to report errors in handler to terminal.
 func (c *OptionContext) GotError(err error) {
 	c.onError(err)
 }
+
+// SendCmd sends a command byte to terminal, which will be encoded and
+// sent to server as a telnet option command.
 func (c *OptionContext) SendCmd(cmd telbyte.Command) {
 	p := packet.NewOptionCommandPacket(cmd, c.handler.Option())
 	if err := c.sender.Send(p); err != nil {
 		c.GotError(err)
 	}
 }
+
+// SendSub sends subnegotiation parameter(s) to terminal, which will be
+// encoded and send to server as a telnet subnegotiation.
 func (c *OptionContext) SendSub(parameters ...[]byte) {
 	p := packet.NewSubPacket(c.handler.Option(), parameters...)
 	if err := c.sender.Send(p); err != nil {
