@@ -68,7 +68,6 @@ func (h *MTTS) Option() telbyte.Option {
 // Handshake implements OptionHandler, it responds to only DO & DONT.
 // Other commands will be ignored.
 func (h *MTTS) Handshake(ctx *nego.OptionContext, inCmd telbyte.Command) {
-	ctx.Logger.Debug("MTTS handshaking")
 	var res telbyte.Command
 	switch inCmd {
 	case telbyte.DO:
@@ -80,7 +79,6 @@ func (h *MTTS) Handshake(ctx *nego.OptionContext, inCmd telbyte.Command) {
 		return
 	}
 	ctx.SendCmd(res)
-	ctx.Logger.Debugf("MTTS replys %s", res)
 }
 
 // Subnegotiate implements OptionHandler, and works in the way described at:

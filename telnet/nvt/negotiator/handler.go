@@ -53,7 +53,7 @@ func newOptionContext(parentCtx context.Context, handler OptionHandler, ng *Nego
 		handler: handler,
 		sender:  ng.sender,
 		onError: ng.GotError,
-		Logger:  logger().Named(handler.Option().String()),
+		Logger:  common.Logger().With("handler", handler.Option()),
 	}
 }
 

@@ -3,6 +3,7 @@ module github.com/wizcas/mudever.svc
 go 1.13
 
 require (
+	github.com/logrusorgru/aurora v0.0.0-20190803045625-94edacc10f9b
 	github.com/pkg/errors v0.8.1 // indirect
 	github.com/smartystreets/goconvey v0.0.0-20190731233626-505e41936337
 	github.com/stretchr/testify v1.4.0 // indirect

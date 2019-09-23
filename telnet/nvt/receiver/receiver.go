@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"io"
-	"log"
 
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
+	"go.uber.org/zap"
 )
 
 // Receiver reads data from network stream and parses it into Packets,
@@ -19,6 +19,7 @@ type Receiver struct {
 	chOutput chan packet.Packet
 
 	processor *processor
+	logger    *zap.SugaredLogger
 }
 
 // New telnet data receiver
@@ -40,11 +41,10 @@ func (r *Receiver) Run(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			r.dispose()
-			log.Println("receiver stopped.")
+			r.logger.Info("receiver stopped.")
 			return
 		default:
 			data, err := r.readStream()
-			log.Printf("[PACKET RECV] len: %d", len(data))
 			go r.processor.proc(data, r.chOutput, r.GotError)
 			if err != nil {
 				r.GotError(err)

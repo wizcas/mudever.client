@@ -5,9 +5,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 
+	"github.com/logrusorgru/aurora"
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
 )
@@ -36,11 +36,11 @@ func (s *Sender) Run(ctx context.Context) {
 	for {
 		select {
 		case p := <-s.chInput:
-			log.Printf("[SEND] input: %s", p)
+			common.Logger().Debug(aurora.Green("sending:"), p)
 			s.doSend(p)
 		case <-ctx.Done():
 			s.dispose()
-			log.Println("sender stopped.")
+			common.Logger().Info("sender stopped.")
 			return
 		}
 	}
@@ -70,7 +70,6 @@ func (s *Sender) doSend(p packet.Packet) {
 		return
 	}
 	if data, err := p.Serialize(); err != nil {
-		log.Printf("\x1b[31m<SEND ERR>\x1b[0m %v\n", err)
 		s.GotError(err)
 	} else {
 		if n, err := s.dst.Write(data); err != nil {
@@ -78,7 +77,7 @@ func (s *Sender) doSend(p packet.Packet) {
 		} else if n != len(data) {
 			s.GotError(fmt.Errorf("data inconsistency: %d written (%d intended)", n, len(data)))
 		} else {
-			log.Printf("\x1b[31m<SEND SUCC>\x1b[0m %s\n", p)
+			common.Logger().Debug(aurora.Green("sent"), p)
 		}
 	}
 }

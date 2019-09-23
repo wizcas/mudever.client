@@ -26,19 +26,21 @@ func NewOptionCommandPacket(command telbyte.Command, option telbyte.Option) *Com
 // which makes it contain 2 bytes for mono command and 3 for option command.
 func (p *CommandPacket) Serialize() ([]byte, error) {
 	bytes := [3]byte{byte(telbyte.IAC), byte(p.Command), byte(p.Option)}
-	if p.isControl() {
+	if !p.IsOption() {
 		return bytes[:2], nil
 	}
 	return bytes[:], nil
 }
 
-func (p *CommandPacket) isControl() bool {
-	return p.Option == telbyte.NoOption
+// IsOption indicates whether this command packet refers
+// an option command or a control command
+func (p *CommandPacket) IsOption() bool {
+	return p.Option != telbyte.NoOption
 }
 
 func (p *CommandPacket) String() string {
 	var str string
-	if p.isControl() {
+	if !p.IsOption() {
 		str = fmt.Sprintf("%s", p.Command)
 	} else {
 		str = fmt.Sprintf("%s > %s", p.Command, p.Option)

@@ -63,7 +63,6 @@ func (pc *processor) reset() {
 
 func (pc *processor) proc(data []byte, chOutput chan packet.Packet, onError common.OnError) {
 	for _, b := range data {
-		// log.Printf("%v\n", b)
 		// This byte next to IAC needs be unescaped
 		if pc.inState(stateIAC) {
 			pc.delState(stateIAC)
@@ -91,20 +90,18 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, onError comm
 			default:
 				pc.submitAsData(chOutput)
 				// Invalid data
-				onError(fmt.Errorf("Wrong data: [IAC %v]", b))
+				onError(fmt.Errorf("wrong data: [IAC %v]", b))
 			}
 		} else {
 			// Leading IAC is the escape signal, and we need to examine the next byte
 			// for further information
 			if telbyte.IAC.Eq(b) {
-				// log.Println("iac")
 				pc.addState(stateIAC)
 				continue
 			}
 			// If in CMD state, this byte is the option. A complete command packet is
 			// formed together with the buffered byte
 			if pc.inState(stateCmd) {
-				// log.Println("opt cmd ends")
 				buffer := pc.flush()
 				chOutput <- packet.NewOptionCommandPacket(telbyte.Command(buffer[0]), telbyte.Option(b))
 				pc.reset()
@@ -121,7 +118,6 @@ func (pc *processor) proc(data []byte, chOutput chan packet.Packet, onError comm
 	// If we're not ending in the middle of IAC, Command or Subnegotiation,
 	// Let see it as a set of complete plain data, and output.
 	if pc.inState(stateNormal) && pc.buffer.Len() > 0 {
-		// log.Println(pc.buffer.Bytes())
 		pc.submitAsData(chOutput)
 	}
 }

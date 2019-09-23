@@ -3,12 +3,10 @@ package nego
 import (
 	"context"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt/log"
-
+	"github.com/logrusorgru/aurora"
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
-	"go.uber.org/zap"
 )
 
 // Negotiator takes care of telnet negotiations
@@ -19,10 +17,6 @@ type Negotiator struct {
 
 	chInput chan packet.Packet
 	sender  common.PacketSender
-}
-
-func logger() *zap.SugaredLogger {
-	return log.Logger().Named("nego")
 }
 
 // New negotiator takes a PacketSender for its handlers to feed replies.
@@ -42,13 +36,13 @@ func New(sender common.PacketSender) *Negotiator {
 func (nego *Negotiator) Know(handler Handler) {
 	switch h := handler.(type) {
 	case ControlHandler:
-		logger().Debugf("Control Handler: %s", h.Command())
+		common.Logger().Debug(aurora.Yellow("nego knows (control)"), h.Command())
 		nego.controlHandlers[h.Command()] = h
 	case OptionHandler:
-		logger().Debugf("Option Handler: %s", h.Option())
+		common.Logger().Debug(aurora.Yellow("nego knows (option)"), h.Option())
 		nego.optionHandlers[h.Option()] = h
 	default:
-		logger().Debugf("UNKNOWN HANDLER TYPE: %t", h)
+		common.Logger().Debug(aurora.Red("unsupported handler"), h)
 	}
 }
 
@@ -65,7 +59,7 @@ func (nego *Negotiator) Run(ctx context.Context) {
 			nego.handle(ctx, input)
 		case <-ctx.Done():
 			nego.dispose()
-			logger().Info("nego stopped")
+			common.Logger().Info("nego stopped")
 			return
 		}
 	}
@@ -75,23 +69,36 @@ func (nego *Negotiator) dispose() {
 	nego.BaseDispose()
 }
 
+func (nego *Negotiator) findControlHandler(cmd telbyte.Command) ControlHandler {
+	handler, ok := nego.controlHandlers[cmd]
+	if !ok {
+		common.Logger().Debug(aurora.Red("no CONTROL handler for"), cmd)
+		return nil
+	}
+	return handler
+}
+
 func (nego *Negotiator) findOptionHandler(option telbyte.Option) OptionHandler {
 	handler, ok := nego.optionHandlers[option]
 	if !ok {
-		logger().Warnf("[WARN] no handler: %s", option)
+		common.Logger().Debug(aurora.Red("no OPTION handler for"), option)
 		return nil
 	}
 	return handler
 }
 
 func (nego *Negotiator) handle(ctx context.Context, input packet.Packet) {
-	logger().Debugf("\x1b[32m<RECV>\x1b[0m %s\n", input)
+	common.Logger().Debug(aurora.Blue("negotiating"), input)
 	switch p := input.(type) {
 	case *packet.CommandPacket:
-		handler := nego.findOptionHandler(p.Option)
-		if handler != nil {
-			logger().Debugf("handshake on <%s %s>", p.Command, p.Option)
-			go handler.Handshake(newOptionContext(ctx, handler, nego), p.Command)
+		if p.IsOption() {
+			if handler := nego.findOptionHandler(p.Option); handler != nil {
+				go handler.Handshake(newOptionContext(ctx, handler, nego), p.Command)
+			}
+		} else {
+			if handler := nego.findControlHandler(p.Command); handler != nil {
+				// TODO: call control functions
+			}
 		}
 	case *packet.SubPacket:
 		handler := nego.findOptionHandler(p.Option)

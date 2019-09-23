@@ -65,13 +65,11 @@ func (r *Reader) Read(data []byte) (int, error) {
 			break
 		}
 		if r.wantEOS {
-			// log.Println("[BLOCK READ] (EOS)")
 			r.wantEOS = false
 			return 0, nil
 		}
 		// Check for EOF in case the reader is closed
 		if _, err := r.buffered.Peek(1); err != nil {
-			// log.Printf("[BLOCK READ] (EOF) len: %d", block.readSize)
 			return block.readSize, err
 		}
 
@@ -83,6 +81,5 @@ func (r *Reader) Read(data []byte) (int, error) {
 		block.writeByte(b)
 		r.traffic++
 	}
-	// log.Printf("[BLOCK READ] (BUF END) len: %d", block.size)
 	return block.readSize, nil
 }

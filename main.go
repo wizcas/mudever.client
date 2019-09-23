@@ -3,7 +3,7 @@ package main
 import (
 	"github.com/wizcas/mudever.svc/telnet"
 	"github.com/wizcas/mudever.svc/telnet/nvt"
-	"github.com/wizcas/mudever.svc/utils"
+	"go.uber.org/zap"
 )
 
 // MudGame contains the profile of a mud server
@@ -19,12 +19,27 @@ var (
 	}
 )
 
+func initLogger(production bool) *zap.Logger {
+	var logger *zap.Logger
+	var err error
+	if production {
+		logger, err = zap.NewProduction()
+	} else {
+		logger, err = zap.NewDevelopment()
+	}
+	if err != nil {
+		panic(err)
+	}
+	zap.ReplaceGlobals(logger.Named("svc"))
+	return logger
+}
+
 func main() {
-	utils.InitLogger("main", false)
-	defer utils.Logger().Sync()
+	logger := initLogger(false)
+	defer logger.Sync()
 	client := telnet.NewClient(nvt.EncodingGB18030)
 	if err := client.Connect(game.Server); err != nil {
-		utils.Logger().Fatalw("unrecoverable error",
+		logger.Sugar().Fatalw("unrecoverable error",
 			"message", err,
 		)
 	}

@@ -34,7 +34,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 	rootCtx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	t.receiver = receiver.New(log(), r)
+	t.receiver = receiver.New(r)
 	recvCtx, _ := context.WithCancel(rootCtx)
 	go t.receiver.Run(recvCtx)
 	t.sender = sender.New(w)
@@ -56,7 +56,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)
 				if err != nil {
-					return terminalError{errorSys, err}
+					return terminalError{errorRecv, err}
 				}
 				os.Stdout.Write(output)
 			case *packet.CommandPacket, *packet.SubPacket:
