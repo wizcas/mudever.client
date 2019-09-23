@@ -103,9 +103,7 @@ func (c *Client) run() error {
 			if err.Panic() {
 				return err.RawErr()
 			}
-			if zap.S() != nil {
-				zap.S().Error(err)
-			}
+			zap.S().Error(err)
 		case <-c.terminal.Stopped():
 			common.Logger().Info("client stopped")
 			return nil

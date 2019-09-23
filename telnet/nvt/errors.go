@@ -48,5 +48,5 @@ func (te TerminalError) RawErr() error {
 }
 
 func (te TerminalError) Error() string {
-	return fmt.Sprintf("[TERM %s ERR] %s", te.kind, te.err.Error())
+	return fmt.Sprintf("[TERM %s ERR] %s", te.kind, te.err)
 }

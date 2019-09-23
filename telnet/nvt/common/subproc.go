@@ -21,6 +21,7 @@ func NewBaseSubProc() *BaseSubProc {
 }
 
 func (p *BaseSubProc) GotError(err error) {
+	Logger().Error(err)
 	if p.chErr == nil {
 		p.chErr = make(chan error)
 	}

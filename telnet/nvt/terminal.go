@@ -71,13 +71,21 @@ LOOP:
 				ng.Consider(p)
 			}
 		case err := <-t.receiver.Err():
-			chErr <- newTerminalError(errorRecv, err, err == io.EOF)
+			if err != nil {
+				chErr <- newTerminalError(errorRecv, err, err == io.EOF)
+			}
 		case err := <-ng.Err():
-			chErr <- newTerminalError(errorNegotiator, err, false)
+			if err != nil {
+				chErr <- newTerminalError(errorNegotiator, err, false)
+			}
 		case err := <-t.sender.Err():
-			chErr <- newTerminalError(errorSend, err, err == io.EOF)
+			if err != nil {
+				chErr <- newTerminalError(errorSend, err, err == io.EOF)
+			}
 		case err := <-chInputErr:
-			chErr <- newTerminalError(errorInput, err, false)
+			if err != nil {
+				chErr <- newTerminalError(errorInput, err, false)
+			}
 		case <-rootCtx.Done():
 			break LOOP
 		}
