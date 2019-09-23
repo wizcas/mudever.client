@@ -3,7 +3,7 @@ package mtts
 import (
 	"fmt"
 
-	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
+	"github.com/wizcas/mudever.svc/telnet/nvt/nego"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 

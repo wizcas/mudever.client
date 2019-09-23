@@ -2,38 +2,11 @@ package nego
 
 import (
 	"context"
-	"errors"
 
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 	"go.uber.org/zap"
-)
-
-// Handler is registered to negotiator for telnet command interpretion
-type Handler interface {
-}
-
-// ControlHandler takes care of control commands (e.g. GA, IP, etc.) in its Handle function.
-// Note that the option commands (i.e. WILL, WONT, DO, DONT) should not be handled by ControlHandler,
-// but rather to be processed within an OptionHandler.
-type ControlHandler interface {
-	Handler
-	Command() telbyte.Command
-	Handle() error
-}
-
-// OptionHandler takes care of option commands and subnegotiations of a certain Telnet Option
-type OptionHandler interface {
-	Handler
-	Option() telbyte.Option
-	Handshake(ctx *OptionContext, inCmd telbyte.Command)
-	Subnegotiate(ctx *OptionContext, inParameter []byte)
-}
-
-// Errors caused by handlers
-var (
-	ErrLackData = errors.New("LACK OF DATA")
 )
 
 // OptionContext passes necessary callbacks and objects, such as logger, context, etc., to
@@ -68,7 +41,7 @@ func (c *OptionContext) GotError(err error) {
 	c.onError(err)
 }
 
-// SendCmd sends a command byte to terminal, which will be encoded and
+// SendCmd takes a command byte, packed into an OptionCommandPacket, and
 // sent to server as a telnet option command.
 func (c *OptionContext) SendCmd(cmd telbyte.Command) {
 	p := packet.NewOptionCommandPacket(cmd, c.handler.Option())
@@ -77,8 +50,8 @@ func (c *OptionContext) SendCmd(cmd telbyte.Command) {
 	}
 }
 
-// SendSub sends subnegotiation parameter(s) to terminal, which will be
-// encoded and send to server as a telnet subnegotiation.
+// SendSub takes subnegotiation parameter(s), packed into a SubPacket, and
+// send to server as a telnet subnegotiation.
 func (c *OptionContext) SendSub(parameters ...[]byte) {
 	p := packet.NewSubPacket(c.handler.Option(), parameters...)
 	if err := c.sender.Send(p); err != nil {

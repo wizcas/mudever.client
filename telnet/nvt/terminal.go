@@ -6,9 +6,9 @@ import (
 	"context"
 	"os"
 
-	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
-	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator/mtts"
-	"github.com/wizcas/mudever.svc/telnet/nvt/negotiator/naws"
+	"github.com/wizcas/mudever.svc/telnet/nvt/nego"
+	"github.com/wizcas/mudever.svc/telnet/nvt/nego/mtts"
+	"github.com/wizcas/mudever.svc/telnet/nvt/nego/naws"
 	"github.com/wizcas/mudever.svc/telnet/nvt/receiver"
 	"github.com/wizcas/mudever.svc/telnet/nvt/sender"
 	"github.com/wizcas/mudever.svc/telnet/packet"

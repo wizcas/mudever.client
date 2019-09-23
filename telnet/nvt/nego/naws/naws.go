@@ -3,7 +3,7 @@ package naws
 import (
 	"encoding/binary"
 
-	nego "github.com/wizcas/mudever.svc/telnet/nvt/negotiator"
+	"github.com/wizcas/mudever.svc/telnet/nvt/nego"
 	"github.com/wizcas/mudever.svc/telnet/telbyte"
 )
 
