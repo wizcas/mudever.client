@@ -39,8 +39,6 @@ func main() {
 	defer logger.Sync()
 	client := telnet.NewClient(nvt.EncodingGB18030)
 	if err := client.Connect(game.Server); err != nil {
-		logger.Sugar().Fatalw("unrecoverable error",
-			"message", err,
-		)
+		logger.Sugar().Fatalf("unexpected exit: %v", err)
 	}
 }

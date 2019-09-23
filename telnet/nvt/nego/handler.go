@@ -19,14 +19,6 @@ type ControlHandler interface {
 	Handle() error
 }
 
-// OptionHandler takes care of option commands and subnegotiations of a certain Telnet Option
-type OptionHandler interface {
-	Handler
-	Option() telbyte.Option
-	Handshake(ctx *OptionContext, inCmd telbyte.Command)
-	Subnegotiate(ctx *OptionContext, inParameter []byte)
-}
-
 // Errors caused by handlers
 var (
 	ErrLackData = errors.New("LACK OF DATA")

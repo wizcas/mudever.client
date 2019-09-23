@@ -11,7 +11,7 @@ import (
 
 // Negotiator takes care of telnet negotiations
 type Negotiator struct {
-	*common.SubProc
+	*common.BaseSubProc
 	controlHandlers map[telbyte.Command]ControlHandler
 	optionHandlers  map[telbyte.Option]OptionHandler
 
@@ -24,7 +24,7 @@ type Negotiator struct {
 // Handlers with Know() method.
 func New(sender common.PacketSender) *Negotiator {
 	return &Negotiator{
-		SubProc:         common.NewSubProc(),
+		BaseSubProc:     common.NewBaseSubProc(),
 		optionHandlers:  make(map[telbyte.Option]OptionHandler),
 		controlHandlers: make(map[telbyte.Command]ControlHandler),
 		chInput:         make(chan packet.Packet),

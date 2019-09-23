@@ -4,10 +4,14 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"os"
+	"os/signal"
 	"strings"
 
 	"github.com/wizcas/mudever.svc/telnet/nvt"
+	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/stream"
+	"go.uber.org/zap"
 )
 
 type Server struct {
@@ -71,6 +75,7 @@ func (c *Client) Connect(server Server) error {
 	c.conn = conn
 	c.reader = stream.NewReader(conn)
 	c.writer = stream.NewWriter(conn)
+	defer c.Close()
 	return c.run()
 }
 
@@ -82,6 +87,28 @@ func (c *Client) Close() {
 }
 
 func (c *Client) run() error {
-	defer c.Close()
-	return c.terminal.Start(c.reader, c.writer)
+	chSig := make(chan os.Signal)
+	chErr := make(chan nvt.TerminalError)
+	signal.Notify(chSig, os.Interrupt)
+	defer signal.Stop(chSig)
+	rootCtx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	go c.terminal.Start(rootCtx, c.reader, c.writer, chErr)
+	for {
+		select {
+		case <-chSig:
+			common.Logger().Info("gracefully closing client...")
+			cancel()
+		case err := <-chErr:
+			if err.Panic() {
+				return err.RawErr()
+			}
+			if zap.S() != nil {
+				zap.S().Error(err)
+			}
+		case <-c.terminal.Stopped():
+			common.Logger().Info("client stopped")
+			return nil
+		}
+	}
 }

@@ -4,8 +4,11 @@ import (
 	"bufio"
 	"bytes"
 	"context"
+	"io"
 	"os"
+	"sync"
 
+	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/nvt/nego"
 	"github.com/wizcas/mudever.svc/telnet/nvt/nego/mtts"
 	"github.com/wizcas/mudever.svc/telnet/nvt/nego/naws"
@@ -17,38 +20,42 @@ import (
 
 // Terminal is where the telnet process runs
 type Terminal struct {
-	Encoding Encoding
-	receiver *receiver.Receiver
-	sender   *sender.Sender
+	Encoding  Encoding
+	receiver  *receiver.Receiver
+	sender    *sender.Sender
+	chStopped chan struct{}
 }
 
 // NewTerminal creates a telnet terminal with specified encoding charset
 func NewTerminal(encoding Encoding) *Terminal {
 	return &Terminal{
-		Encoding: encoding,
+		Encoding:  encoding,
+		chStopped: make(chan struct{}),
 	}
 }
 
-// Start the terminal session
-func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
-	rootCtx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+// Stopped returns a channel that emits value only when this terminal has stopped running
+func (t *Terminal) Stopped() <-chan struct{} {
+	return t.chStopped
+}
 
+// Start the terminal session
+func (t *Terminal) Start(rootCtx context.Context, r *stream.Reader, w *stream.Writer, chErr chan TerminalError) {
+	wg := sync.WaitGroup{}
 	t.receiver = receiver.New(r)
-	recvCtx, _ := context.WithCancel(rootCtx)
-	go t.receiver.Run(recvCtx)
+	t.startSubProc(rootCtx, t.receiver, &wg)
+
 	t.sender = sender.New(w)
-	sendCtx, _ := context.WithCancel(rootCtx)
-	go t.sender.Run(sendCtx)
+	t.startSubProc(rootCtx, t.sender, &wg)
+
 	chInputErr := make(chan error)
 	go t.input(chInputErr)
 
 	ng := nego.New(t.sender)
 	ng.Know(mtts.New(false))
 	ng.Know(naws.New())
-	ngCtx, _ := context.WithCancel(rootCtx)
-	go ng.Run(ngCtx)
-
+	t.startSubProc(rootCtx, ng, &wg)
+LOOP:
 	for {
 		select {
 		case pkt := <-t.receiver.Output():
@@ -56,7 +63,7 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 			case *packet.DataPacket:
 				output, err := t.decode(p.Data)
 				if err != nil {
-					return terminalError{errorRecv, err}
+					chErr <- newTerminalError(errorRecv, err, false)
 				}
 				os.Stdout.Write(output)
 			case *packet.CommandPacket, *packet.SubPacket:
@@ -64,17 +71,33 @@ func (t *Terminal) Start(r *stream.Reader, w *stream.Writer) error {
 				ng.Consider(p)
 			}
 		case err := <-t.receiver.Err():
-			return terminalError{errorRecv, err}
+			chErr <- newTerminalError(errorRecv, err, err == io.EOF)
 		case err := <-ng.Err():
-			return terminalError{errorNegotiator, err}
+			chErr <- newTerminalError(errorNegotiator, err, false)
 		case err := <-t.sender.Err():
-			return terminalError{errorSend, err}
+			chErr <- newTerminalError(errorSend, err, err == io.EOF)
 		case err := <-chInputErr:
-			return terminalError{errorInput, err}
+			chErr <- newTerminalError(errorInput, err, false)
 		case <-rootCtx.Done():
-			return rootCtx.Err()
+			break LOOP
 		}
 	}
+
+	wg.Wait()
+	common.Logger().Info("terminal stopped")
+	close(t.chStopped)
+}
+
+func (t *Terminal) startSubProc(ctx context.Context, subproc common.SubProc, wg *sync.WaitGroup) {
+	wg.Add(1)
+	go func(sp common.SubProc) {
+		childCtx, _ := context.WithCancel(ctx)
+		go subproc.Run(childCtx)
+		select {
+		case <-sp.Stopped():
+			wg.Done()
+		}
+	}(subproc)
 }
 
 func (t *Terminal) decode(b []byte) ([]byte, error) {

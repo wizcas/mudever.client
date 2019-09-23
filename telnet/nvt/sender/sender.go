@@ -14,7 +14,7 @@ import (
 
 // Sender takes packets, serialize them and write into destination writer.
 type Sender struct {
-	*common.SubProc
+	*common.BaseSubProc
 	sync.Mutex
 	dst     io.Writer
 	chInput chan packet.Packet
@@ -24,8 +24,8 @@ type Sender struct {
 // New sender to write packets into dst writer.
 func New(dst io.Writer) *Sender {
 	return &Sender{
-		SubProc: common.NewSubProc(),
-		dst:     dst,
+		BaseSubProc: common.NewBaseSubProc(),
+		dst:         dst,
 	}
 }
 
@@ -40,7 +40,7 @@ func (s *Sender) Run(ctx context.Context) {
 			s.doSend(p)
 		case <-ctx.Done():
 			s.dispose()
-			common.Logger().Info("sender stopped.")
+			common.Logger().Info("sender stopped")
 			return
 		}
 	}

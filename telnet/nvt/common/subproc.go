@@ -1,26 +1,41 @@
 package common
 
-type SubProc struct {
-	chErr chan error
+import "context"
+
+type SubProc interface {
+	Run(ctx context.Context)
+	Err() <-chan error
+	Stopped() <-chan struct{}
 }
 
-func NewSubProc() *SubProc {
-	return &SubProc{
-		chErr: make(chan error),
+type BaseSubProc struct {
+	chErr     chan error
+	chStopped chan struct{}
+}
+
+func NewBaseSubProc() *BaseSubProc {
+	return &BaseSubProc{
+		chErr:     make(chan error),
+		chStopped: make(chan struct{}),
 	}
 }
 
-func (p *SubProc) GotError(err error) {
+func (p *BaseSubProc) GotError(err error) {
 	if p.chErr == nil {
 		p.chErr = make(chan error)
 	}
 	p.chErr <- err
 }
 
-func (p *SubProc) Err() <-chan error {
+func (p *BaseSubProc) Err() <-chan error {
 	return p.chErr
 }
 
-func (p *SubProc) BaseDispose() {
+func (p *BaseSubProc) Stopped() <-chan struct{} {
+	return p.chStopped
+}
+
+func (p *BaseSubProc) BaseDispose() {
 	close(p.chErr)
+	close(p.chStopped)
 }

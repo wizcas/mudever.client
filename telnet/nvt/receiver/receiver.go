@@ -4,32 +4,35 @@ import (
 	"bytes"
 	"context"
 	"io"
+	"sync"
 
 	"github.com/wizcas/mudever.svc/telnet/nvt/common"
 	"github.com/wizcas/mudever.svc/telnet/packet"
-	"go.uber.org/zap"
 )
 
 // Receiver reads data from network stream and parses it into Packets,
 // which is comprehensible to Terminal
 type Receiver struct {
-	*common.SubProc
+	sync.Mutex
+	*common.BaseSubProc
 	src      io.Reader
 	alloc    []byte
+	chRead   chan []byte
 	chOutput chan packet.Packet
+	running  bool
 
 	processor *processor
-	logger    *zap.SugaredLogger
 }
 
 // New telnet data receiver
 func New(src io.Reader) *Receiver {
 	return &Receiver{
-		SubProc:   common.NewSubProc(),
-		src:       src,
-		alloc:     make([]byte, 128),
-		chOutput:  make(chan packet.Packet),
-		processor: newProcessor(),
+		BaseSubProc: common.NewBaseSubProc(),
+		src:         src,
+		alloc:       make([]byte, 128),
+		chRead:      make(chan []byte, 100),
+		chOutput:    make(chan packet.Packet, 5),
+		processor:   newProcessor(),
 	}
 }
 
@@ -37,18 +40,16 @@ func New(src io.Reader) *Receiver {
 // Any processed packets are input into Receiver.ChPacket, and errors
 // into Receiver.ChErr
 func (r *Receiver) Run(ctx context.Context) {
+	r.setRunning(true)
+	go r.feedData()
 	for {
 		select {
 		case <-ctx.Done():
 			r.dispose()
-			r.logger.Info("receiver stopped.")
+			common.Logger().Info("receiver stopped")
 			return
-		default:
-			data, err := r.readStream()
+		case data := <-r.chRead:
 			go r.processor.proc(data, r.chOutput, r.GotError)
-			if err != nil {
-				r.GotError(err)
-			}
 		}
 	}
 }
@@ -56,6 +57,31 @@ func (r *Receiver) Run(ctx context.Context) {
 // Output packet processed by received
 func (r *Receiver) Output() <-chan packet.Packet {
 	return r.chOutput
+}
+
+func (r *Receiver) feedData() {
+	for r.getRunning() {
+		data, err := r.readStream()
+		if !r.getRunning() {
+			return
+		}
+		if err != nil {
+			r.GotError(err)
+		} else {
+			r.chRead <- data
+		}
+	}
+}
+
+func (r *Receiver) setRunning(running bool) {
+	r.Lock()
+	defer r.Unlock()
+	r.running = running
+}
+func (r *Receiver) getRunning() bool {
+	r.Lock()
+	defer r.Unlock()
+	return r.running
 }
 
 func (r *Receiver) readStream() ([]byte, error) {
@@ -76,6 +102,8 @@ func (r *Receiver) readStream() ([]byte, error) {
 }
 
 func (r *Receiver) dispose() {
+	r.setRunning(false)
+	close(r.chRead)
 	close(r.chOutput)
 	r.BaseDispose()
 }

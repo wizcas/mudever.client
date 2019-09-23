@@ -28,11 +28,25 @@ func (k errorKind) String() string {
 	return name
 }
 
-type terminalError struct {
-	kind errorKind
-	err  error
+// TerminalError is an error reported by terminal
+type TerminalError struct {
+	kind  errorKind
+	err   error
+	panic bool
 }
 
-func (te terminalError) Error() string {
+func newTerminalError(kind errorKind, err error, panic bool) TerminalError {
+	return TerminalError{kind, err, panic}
+}
+
+func (te TerminalError) Panic() bool {
+	return te.panic
+}
+
+func (te TerminalError) RawErr() error {
+	return te.err
+}
+
+func (te TerminalError) Error() string {
 	return fmt.Sprintf("[TERM %s ERR] %s", te.kind, te.err.Error())
 }
