@@ -3,6 +3,7 @@ package nego
 import (
 	"errors"
 
+	"github.com/wizcas/mudever.svc/packet"
 	"github.com/wizcas/mudever.svc/telbyte"
 )
 
@@ -17,6 +18,12 @@ type ControlHandler interface {
 	Handler
 	Command() telbyte.Command
 	Handle() error
+}
+
+// HandlerCommittee takes any result or error that committed by a handler.
+type HandlerCommittee interface {
+	Commit(p packet.Packet) error
+	GotError(err error)
 }
 
 // Errors caused by handlers

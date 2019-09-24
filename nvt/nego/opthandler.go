@@ -23,9 +23,8 @@ type OptionHandler interface {
 // Cancel() is called manually or when its parent context is cancelled.
 type OptionContext struct {
 	context.Context
-	handler OptionHandler
-	sender  common.PacketSender
-	onError common.OnError
+	handler   OptionHandler
+	committee HandlerCommittee
 	// Cancel the handler's context when needed.
 	Cancel context.CancelFunc
 	// Logger provides a main.nvt logger with the option's name as the value of 'handler' field.
@@ -33,31 +32,30 @@ type OptionContext struct {
 }
 
 // NewOptionContext returns a new option context
-func NewOptionContext(parentCtx context.Context, handler OptionHandler,
-	sender common.PacketSender,
-	onError common.OnError,
-) *OptionContext {
+func NewOptionContext(
+	parentCtx context.Context,
+	handler OptionHandler,
+	committee HandlerCommittee) *OptionContext {
 	ctx, cancel := context.WithCancel(parentCtx)
 	return &OptionContext{
-		Context: ctx,
-		Cancel:  cancel,
-		handler: handler,
-		sender:  sender,
-		onError: onError,
-		Logger:  common.Logger().With("handler", handler.Option()),
+		Context:   ctx,
+		Cancel:    cancel,
+		handler:   handler,
+		committee: committee,
+		Logger:    common.Logger().With("handler", handler.Option()),
 	}
 }
 
 // GotError should be called to report errors in handler to terminal.
 func (c *OptionContext) GotError(err error) {
-	c.onError(err)
+	c.committee.GotError(err)
 }
 
 // SendCmd takes a command byte, packed into an OptionCommandPacket, and
 // sent to server as a telnet option command.
 func (c *OptionContext) SendCmd(cmd telbyte.Command) {
 	p := packet.NewOptionCommandPacket(cmd, c.handler.Option())
-	if err := c.sender.Send(p); err != nil {
+	if err := c.committee.Commit(p); err != nil {
 		c.GotError(err)
 	}
 }
@@ -66,7 +64,7 @@ func (c *OptionContext) SendCmd(cmd telbyte.Command) {
 // send to server as a telnet subnegotiation.
 func (c *OptionContext) SendSub(parameters ...[]byte) {
 	p := packet.NewSubPacket(c.handler.Option(), parameters...)
-	if err := c.sender.Send(p); err != nil {
+	if err := c.committee.Commit(p); err != nil {
 		c.GotError(err)
 	}
 }
