@@ -93,7 +93,7 @@ func (nego *Negotiator) handle(ctx context.Context, input packet.Packet) {
 	case *packet.CommandPacket:
 		if p.IsOption() {
 			if handler := nego.findOptionHandler(p.Option); handler != nil {
-				go handler.Handshake(newOptionContext(ctx, handler, nego.sender, nego.GotError), p.Command)
+				go handler.Handshake(NewOptionContext(ctx, handler, nego.sender, nego.GotError), p.Command)
 			}
 		} else {
 			if handler := nego.findControlHandler(p.Command); handler != nil {
@@ -103,7 +103,7 @@ func (nego *Negotiator) handle(ctx context.Context, input packet.Packet) {
 	case *packet.SubPacket:
 		handler := nego.findOptionHandler(p.Option)
 		if handler != nil {
-			go handler.Subnegotiate(newOptionContext(ctx, handler, nego.sender, nego.GotError), p.Parameter)
+			go handler.Subnegotiate(NewOptionContext(ctx, handler, nego.sender, nego.GotError), p.Parameter)
 		}
 	}
 }

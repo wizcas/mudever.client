@@ -32,7 +32,8 @@ type OptionContext struct {
 	Logger *zap.SugaredLogger
 }
 
-func newOptionContext(parentCtx context.Context, handler OptionHandler,
+// NewOptionContext returns a new option context
+func NewOptionContext(parentCtx context.Context, handler OptionHandler,
 	sender common.PacketSender,
 	onError common.OnError,
 ) *OptionContext {

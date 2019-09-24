@@ -9,8 +9,8 @@ import (
 
 // MTTS Sub-commands
 const (
-	IS   = 0
-	SEND = 1
+	IS   = byte(0)
+	SEND = byte(1)
 )
 
 // MUD Client Terminal Types
@@ -21,41 +21,28 @@ const (
 	TypeXTERM = "XTERM"
 )
 
-// MUD Terminal Type Bit Values
-const (
-	SupportANSI uint = 1 << iota
-	SupportVT100
-	SupportUTF8
-	Support256Colors
-	SupportMouseTracking
-	SupportOscColorPalette
-	SupportScreenReader
-	SupportProxy
-	SupportTrueColor
-)
-
 // MTTS contains information for TerminalType negotiations.
 type MTTS struct {
 	// ClientName of the terminal including version preferably
 	ClientName string
 	// TerminalType which should be set to one of the 'Type*' enum values
 	TerminalType string
-	// SupportFlag indicates the terminal's capabilities,
-	// which should be the SUM of all desired 'Support*' enum values
-	SupportFlag uint
-	queryTimes  int
+	// Features indicates the terminal's capabilities and is the SUM of
+	// the enabled features.
+	Features   *featureSet
+	queryTimes int
 }
 
 // New MTTS handler with default values.
 func New(isUTF8 bool) *MTTS {
-	supportFlag := SupportANSI + Support256Colors + SupportTrueColor + SupportMouseTracking
+	feats := newFeatureSet(FeatANSI, Feat256Colors, FeatTrueColor, FeatMouseTracking)
 	if isUTF8 {
-		supportFlag += SupportUTF8
+		feats.add(FeatUTF8)
 	}
 	return &MTTS{
 		ClientName:   "MUDEVER 0.1",
 		TerminalType: TypeXTERM,
-		SupportFlag:  supportFlag,
+		Features:     feats,
 		queryTimes:   0,
 	}
 }
@@ -99,8 +86,13 @@ func (h *MTTS) Subnegotiate(ctx *nego.OptionContext, inParameter []byte) {
 	case 1:
 		payload = []byte(h.TerminalType)
 	default:
-		payload = []byte(fmt.Sprintf("MTTS %d", h.SupportFlag))
+		payload = []byte(fmt.Sprintf("MTTS %d", h.Features.Value()))
 	}
 	params := append([]byte{IS}, payload...)
 	ctx.SendSub(params)
+	h.queryTimes++
+}
+
+func (h *MTTS) setQueryTimesForTesting(times int) {
+	h.queryTimes = times
 }
