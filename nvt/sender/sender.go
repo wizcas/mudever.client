@@ -8,8 +8,8 @@ import (
 	"sync"
 
 	"github.com/logrusorgru/aurora"
-	"github.com/wizcas/mudever.svc/telnet/nvt/common"
-	"github.com/wizcas/mudever.svc/telnet/packet"
+	"github.com/wizcas/mudever.svc/nvt/common"
+	"github.com/wizcas/mudever.svc/packet"
 )
 
 // Sender takes packets, serialize them and write into destination writer.

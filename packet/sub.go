@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
-	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"github.com/wizcas/mudever.svc/telbyte"
 )
 
 // SubPacket represents a telnet subnegotiation

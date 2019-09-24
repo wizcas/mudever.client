@@ -4,7 +4,7 @@ package receiver
 // 	"testing"
 
 // 	. "github.com/smartystreets/goconvey/convey"
-// 	"github.com/wizcas/mudever.svc/telnet/packet"
+// 	"github.com/wizcas/mudever.svc/packet"
 // )
 
 // // func _makeReceiver(data []byte) *Receiver {

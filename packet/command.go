@@ -3,7 +3,7 @@ package packet
 import (
 	"fmt"
 
-	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"github.com/wizcas/mudever.svc/telbyte"
 )
 
 // CommandPacket represents a telnet command

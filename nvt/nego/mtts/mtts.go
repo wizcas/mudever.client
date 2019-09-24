@@ -3,8 +3,8 @@ package mtts
 import (
 	"fmt"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt/nego"
-	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"github.com/wizcas/mudever.svc/nvt/nego"
+	"github.com/wizcas/mudever.svc/telbyte"
 )
 
 // MTTS Sub-commands

@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	. "github.com/smartystreets/goconvey/convey"
-	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"github.com/wizcas/mudever.svc/telbyte"
 )
 
 func _assertSub(result, expect []byte, err error) {

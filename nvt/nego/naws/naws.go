@@ -3,8 +3,8 @@ package naws
 import (
 	"encoding/binary"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt/nego"
-	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"github.com/wizcas/mudever.svc/nvt/nego"
+	"github.com/wizcas/mudever.svc/telbyte"
 )
 
 // NAWS stands for Negotiate About Window Size, which is used for

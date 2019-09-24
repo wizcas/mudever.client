@@ -1,6 +1,6 @@
 package common
 
-import "github.com/wizcas/mudever.svc/telnet/packet"
+import "github.com/wizcas/mudever.svc/packet"
 
 type PacketSender interface {
 	Send(p packet.Packet) error

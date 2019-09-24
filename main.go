@@ -1,21 +1,15 @@
 package main
 
 import (
-	"github.com/wizcas/mudever.svc/telnet"
-	"github.com/wizcas/mudever.svc/telnet/nvt"
+	"github.com/wizcas/mudever.svc/data"
+	"github.com/wizcas/mudever.svc/nvt"
 	"go.uber.org/zap"
 )
 
-// MudGame contains the profile of a mud server
-type MudGame struct {
-	Name   string
-	Server telnet.Server
-}
-
 var (
-	game = MudGame{
+	game = data.MudGame{
 		Name:   "pkuxkx",
-		Server: telnet.NewServer("mud.pkuxkx.net", 8080),
+		Server: data.NewServer("mud.pkuxkx.net", 8080),
 	}
 )
 
@@ -30,15 +24,17 @@ func initLogger(production bool) *zap.Logger {
 	if err != nil {
 		panic(err)
 	}
-	zap.ReplaceGlobals(logger.Named("svc"))
+	logger = logger.Named("client")
+	zap.ReplaceGlobals(logger)
 	return logger
 }
 
 func main() {
 	logger := initLogger(false)
 	defer logger.Sync()
-	client := telnet.NewClient(nvt.EncodingGB18030)
+	client := NewClient(nvt.EncodingGB18030)
 	if err := client.Connect(game.Server); err != nil {
 		logger.Sugar().Fatalf("unexpected exit: %v", err)
 	}
+	logger.Info("good bye ;)")
 }

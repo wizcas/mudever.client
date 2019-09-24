@@ -8,14 +8,14 @@ import (
 	"os"
 	"sync"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt/common"
-	"github.com/wizcas/mudever.svc/telnet/nvt/nego"
-	"github.com/wizcas/mudever.svc/telnet/nvt/nego/mtts"
-	"github.com/wizcas/mudever.svc/telnet/nvt/nego/naws"
-	"github.com/wizcas/mudever.svc/telnet/nvt/receiver"
-	"github.com/wizcas/mudever.svc/telnet/nvt/sender"
-	"github.com/wizcas/mudever.svc/telnet/packet"
-	"github.com/wizcas/mudever.svc/telnet/stream"
+	"github.com/wizcas/mudever.svc/nvt/common"
+	"github.com/wizcas/mudever.svc/nvt/nego"
+	"github.com/wizcas/mudever.svc/nvt/nego/mtts"
+	"github.com/wizcas/mudever.svc/nvt/nego/naws"
+	"github.com/wizcas/mudever.svc/nvt/receiver"
+	"github.com/wizcas/mudever.svc/nvt/sender"
+	"github.com/wizcas/mudever.svc/packet"
+	"github.com/wizcas/mudever.svc/stream"
 )
 
 // Terminal is where the telnet process runs

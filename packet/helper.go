@@ -1,6 +1,6 @@
 package packet
 
-import "github.com/wizcas/mudever.svc/telnet/telbyte"
+import "github.com/wizcas/mudever.svc/telbyte"
 
 func insert(dst []byte, b byte, pos int) []byte {
 	dst = append(dst, 0)

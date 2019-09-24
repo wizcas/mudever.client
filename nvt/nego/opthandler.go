@@ -3,9 +3,9 @@ package nego
 import (
 	"context"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt/common"
-	"github.com/wizcas/mudever.svc/telnet/packet"
-	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"github.com/wizcas/mudever.svc/nvt/common"
+	"github.com/wizcas/mudever.svc/packet"
+	"github.com/wizcas/mudever.svc/telbyte"
 	"go.uber.org/zap"
 )
 

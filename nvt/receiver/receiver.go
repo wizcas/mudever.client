@@ -6,8 +6,8 @@ import (
 	"io"
 	"sync"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt/common"
-	"github.com/wizcas/mudever.svc/telnet/packet"
+	"github.com/wizcas/mudever.svc/nvt/common"
+	"github.com/wizcas/mudever.svc/packet"
 )
 
 // Receiver reads data from network stream and parses it into Packets,

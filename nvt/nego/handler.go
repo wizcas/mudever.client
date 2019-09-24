@@ -3,7 +3,7 @@ package nego
 import (
 	"errors"
 
-	"github.com/wizcas/mudever.svc/telnet/telbyte"
+	"github.com/wizcas/mudever.svc/telbyte"
 )
 
 // Handler is registered to negotiator for telnet command interpretion

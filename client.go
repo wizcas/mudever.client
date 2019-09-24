@@ -1,4 +1,4 @@
-package telnet
+package main
 
 import (
 	"context"
@@ -6,65 +6,34 @@ import (
 	"net"
 	"os"
 	"os/signal"
-	"strings"
 
-	"github.com/wizcas/mudever.svc/telnet/nvt"
-	"github.com/wizcas/mudever.svc/telnet/nvt/common"
-	"github.com/wizcas/mudever.svc/telnet/stream"
+	"github.com/wizcas/mudever.svc/data"
+	"github.com/wizcas/mudever.svc/nvt"
+	"github.com/wizcas/mudever.svc/nvt/common"
+	"github.com/wizcas/mudever.svc/stream"
 	"go.uber.org/zap"
 )
 
-type Server struct {
-	Host string
-	Port uint16
-}
-
-// NewServer returns a specified server config.
-// If host is not given, "127.0.0.1" will be set as default.
-// If port is not given, 23 will be set as default.
-func NewServer(host string, port uint16) Server {
-	host = strings.TrimSpace(host)
-	if len(host) == 0 {
-		host = "127.0.0.1"
-	}
-	if port == 0 {
-		port = 23
-	}
-	return Server{host, port}
-}
-
-func (s Server) Addr() string {
-	return s.String()
-}
-
-func (s Server) String() string {
-	return fmt.Sprintf("%s:%d", s.Host, s.Port)
-}
-
+// Client is the session where MUD game runs.
+// It communicates with game server with a built-in telnet NVT, and
+// interacts with the front-end UI. MUD gaming tools (such as alias,
+// trigger, script runner, etc.) operate in the client for consistency.
 type Client struct {
 	conn     net.Conn
 	reader   *stream.Reader
 	writer   *stream.Writer
 	terminal *nvt.Terminal
-	stopFn   context.CancelFunc
 }
 
+// NewClient creates a mud client with given encoding
 func NewClient(encoding nvt.Encoding) *Client {
 	return &Client{
 		terminal: nvt.NewTerminal(encoding),
 	}
 }
 
-func dial(server Server) (net.Conn, error) {
-	conn, err := net.Dial("tcp", server.Addr())
-	if err != nil {
-		return nil, err
-	}
-
-	return conn, nil
-}
-
-func (c *Client) Connect(server Server) error {
+// Connect the client to given server
+func (c *Client) Connect(server data.Server) error {
 	conn, err := dial(server)
 	if err != nil {
 		return err
@@ -75,11 +44,20 @@ func (c *Client) Connect(server Server) error {
 	c.conn = conn
 	c.reader = stream.NewReader(conn)
 	c.writer = stream.NewWriter(conn)
-	defer c.Close()
+	defer c.close()
 	return c.run()
 }
 
-func (c *Client) Close() {
+func dial(server data.Server) (net.Conn, error) {
+	conn, err := net.Dial("tcp", server.Addr())
+	if err != nil {
+		return nil, err
+	}
+
+	return conn, nil
+}
+
+func (c *Client) close() {
 	c.conn.Close()
 	c.conn = nil
 	c.reader = nil
@@ -97,7 +75,7 @@ func (c *Client) run() error {
 	for {
 		select {
 		case <-chSig:
-			common.Logger().Info("gracefully closing client...")
+			common.Logger().Info("gracefully stopping...")
 			cancel()
 		case err := <-chErr:
 			if err.Panic() {

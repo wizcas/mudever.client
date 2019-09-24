@@ -72,7 +72,6 @@ func (r *Reader) Read(data []byte) (int, error) {
 		if _, err := r.buffered.Peek(1); err != nil {
 			return block.readSize, err
 		}
-
 		b, err := r.buffered.ReadByte()
 		r.streaming = true
 		if err != nil {
